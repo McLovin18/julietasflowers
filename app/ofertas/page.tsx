@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ProductoCard from "../components/ProductoCard";
+import EmptyState from "../components/EmptyState";
 import { obtenerProductos } from "../lib/productos-db";
 import { getCatalogPricing } from "../lib/pricing";
 import type { Producto } from "../lib/productos-db";
@@ -121,12 +122,11 @@ export default function OfertasPage() {
             Cargando ofertas...
           </div>
         ) : productosOferta.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-10 text-center shadow-sm dark:border-white/15 dark:bg-white/3">
-            <h2 className="text-xl font-semibold">No hay ofertas activas</h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              En este momento no hay productos con descuento publicado.
-            </p>
-          </div>
+          <EmptyState
+            icon="local_offer"
+            title="No hay ofertas activas"
+            message="En este momento no hay productos con descuento publicado"
+          />
         ) : (
           <>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-rose-100 px-4 py-2 text-sm font-semibold text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">

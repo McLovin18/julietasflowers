@@ -195,7 +195,7 @@ export default function RelatedProductsCarousel({
           )}
         </div>
       ) : (
-        <div className="text-slate-400 dark:text-white/30 text-center py-8 px-3">
+        <div className="text-slate-400 dark:text-white/30 text-center py-8 px-3 font-lovely-flowers" style={{ fontSize: "1.2rem", lineHeight: "1.4" }}>
           No hay productos relacionados para mostrar.
         </div>
       )}

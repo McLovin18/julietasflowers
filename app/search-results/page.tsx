@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductoCard from "../components/ProductoCard";
 import { Loading3DIcon } from "../components/Loading3DIcon";
+import EmptyState from "../components/EmptyState";
 import { obtenerProductos } from "../lib/productos-db";
 import { productMatches } from "../lib/search-utils";
 import {
@@ -198,7 +199,11 @@ export default function SearchResultsPage() {
                 <Loading3DIcon />
               </div>
             ) : productosFiltrados.length === 0 ? (
-              <p className="text-slate-700 dark:text-white/50">No hay resultados</p>
+              <EmptyState
+                icon="search_off"
+                title="No hay resultados"
+                message="Prueba con otros términos de búsqueda"
+              />
             ) : (
           <>
               <div className="grid grid-cols-2 gap-2 lg:grid-cols-5 animate-in fade-in duration-700">              {paginatedProducts.map((p: any) => (

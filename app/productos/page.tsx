@@ -364,7 +364,7 @@ export default function ProductosPage() {
               </span>
             </div>
             <div>
-              <p className="font-semibold text-slate-700 dark:text-white/80">Sin resultados</p>
+              <p className="font-semibold text-slate-700 dark:text-white/80 font-lovely-flowers" style={{ fontSize: "1.5rem", lineHeight: "1.4" }}>Sin resultados</p>
               <p className="text-sm text-slate-400 dark:text-white/30 mt-1 max-w-60">
                 {categoria
                   ? `No hay productos en "${categorias.find((c) => sameCategoryId(c.id, categoria))?.nombre || "esta categoría"}".`

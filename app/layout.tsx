@@ -9,14 +9,31 @@ import { ToastProvider } from "./context/ToastContext";
 import LayoutContentClient from "./components/LayoutContentClient";
 import { StructuredData } from "./components/StructuredData";
 import type { Metadata, Viewport } from "next";
-import { Source_Serif_4 } from "next/font/google";
+import { Source_Serif_4, Playfair_Display, Great_Vibes } from "next/font/google";
 
 // ISR Global: Revalidar sitio cada 30 minutos
 // Optimiza regeneración de página principal y otros contenidos estáticos
 export const revalidate = 1800;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://julianabasics.com";
-const SITE_NAME = "Juliana Basics";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://julietasflowers.com"; // 👉 reemplazar con el dominio real de producción
+const SITE_NAME = "Julietas Flowers";
+
+// VONCA alternativa: Playfair Display (elegante contemporánea, minimalista)
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-vonca",
+});
+
+// Lovely Flowers alternativa: Great Vibes (cursiva elegante, ornamental)
+const greatVibes = Great_Vibes({
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal"],
+  variable: "--font-lovely-flowers",
+});
+
 const sourceSerif4 = Source_Serif_4({
   subsets: ["latin"],
   weight: ["400"],
@@ -26,22 +43,22 @@ const sourceSerif4 = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: {
-    default: "Juliana Basics - Moda & Outfits",
-    template: "%s | Juliana Basics",
+    default: "Julietas Flowers - Florería en Samborondón",
+    template: "%s | Julietas Flowers",
   },
   description:
-    "Tienda de moda y outfits. Descubre las últimas tendencias en ropa y accesorios, con piezas pensadas para cada estilo. Envíos a todo Ecuador.",
+    "Florería en Samborondón. Creamos emociones con cada flor: arreglos personalizados y experiencias únicas para cada ocasión.",
   keywords: [
-    "moda",
-    "outfits",
-    "ropa",
-    "tienda de ropa Ecuador",
-    "tendencias moda",
-    "accesorios",
-    "estilo",
-    "Juliana Basics",
+    "florería",
+    "flores",
+    "arreglos florales",
+    "rosas",
+    "florería Samborondón",
+    "florería Ecuador",
+    "regalos con flores",
+    "Julietas Flowers",
   ],
-  creator: "Juliana Basics",
+  creator: "Julietas Flowers",
   metadataBase: new URL(SITE_URL),
   icons: {
     icon: "/favicon.ico",
@@ -53,18 +70,18 @@ export const metadata: Metadata = {
   // Open Graph - Redes Sociales
   openGraph: {
     type: "website",
-    locale: "es_ES",
+    locale: "es_EC",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: "Juliana Basics - Moda & Outfits",
+    title: "Julietas Flowers - Florería en Samborondón",
     description:
-      "Descubre las últimas tendencias en ropa y accesorios. Piezas pensadas para cada estilo, con envíos a todo Ecuador.",
+      "Arreglos personalizados y experiencias únicas con flores. Entre Ríos, Samborondón.",
     images: [
       {
         url: `${SITE_URL}/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: "Juliana Basics - Moda & Outfits",
+        alt: "Julietas Flowers - Florería en Samborondón",
         type: "image/jpeg",
       },
     ],
@@ -73,9 +90,9 @@ export const metadata: Metadata = {
   // Twitter Card
   twitter: {
     card: "summary_large_image",
-    title: "Juliana Basics - Moda & Outfits",
+    title: "Julietas Flowers - Florería en Samborondón",
     description:
-      "Descubre las últimas tendencias en ropa y accesorios. Envíos a todo Ecuador.",
+      "Creamos emociones con cada flor. Arreglos personalizados en Samborondón.",
     images: [`${SITE_URL}/twitter-image.jpg`],
   },
 
@@ -121,22 +138,30 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={sourceSerif4.variable}>
+    <html lang="es" className={`${sourceSerif4.variable} ${playfairDisplay.variable} ${greatVibes.variable}`}>
       <head>
         {/* Google Analytics gtag.js - insertado justo después de <head> */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-K1Q0MYDSKF"></script>
+        {/* 👉 Reemplazar G-XXXXXXXXXX con el ID de GA4 real de Julietas Flowers */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', 'G-K1Q0MYDSKF');
+              gtag('config', 'G-XXXXXXXXXX');
             `,
           }}
         />
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
+        
+        {/* Nota: Para usar las fuentes originales VONCA y Lovely Flowers, necesitarás:
+            1. Comprar las fuentes en sus respectivos sitios (MyFonts, Creative Market, etc.)
+            2. Colocar los archivos de fuente en public/fonts/
+            3. Agregar las declaraciones @font-face en globals.css
+            4. Actualizar las variables CSS para usar las fuentes originales
+            Actualmente usamos alternativas de Google Fonts: Playfair Display y Great Vibes */}
         
         <StructuredData />
       </head>

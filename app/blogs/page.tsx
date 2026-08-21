@@ -7,6 +7,7 @@ import { getPublishedBlogs } from "../lib/blogs-db";
 import { useTracking } from "../lib/useAnalytics";
 import type { Blog } from "../lib/blog-types";
 import BottomBarPublic from "../components/BottomBarPublic";
+import EmptyState from "../components/EmptyState";
 
 export default function BlogsPage() {
   const router = useRouter();
@@ -52,17 +53,10 @@ export default function BlogsPage() {
             <Loading3DIcon />
           </div>
         ) : blogs.length === 0 ? (
-          <div className="text-center py-12">
-            <span
-              className="material-icons-round text-6xl opacity-30"
-              style={{ color: "var(--textSecondary)" }}
-            >
-              article
-            </span>
-            <h3 className="text-xl font-semibold mt-4" style={{ color: "var(--text)" }}>
-              No hay artículos disponibles
-            </h3>
-          </div>
+          <EmptyState
+            icon="article"
+            title="No hay artículos disponibles"
+          />
         ) : (
           <>
             {featured && (

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ProductoCard from "../components/ProductoCard";
+import EmptyState from "../components/EmptyState";
 import { obtenerProductos } from "../lib/productos-db";
 import type { Producto } from "../lib/productos-db";
 import {
@@ -115,12 +116,11 @@ export default function PersonalizadosPage() {
             Cargando productos personalizados...
           </div>
         ) : productosPersonalizados.length === 0 ? (
-          <div className="rounded-3xl border border-dashed p-10 text-center shadow-sm" style={{ background: "var(--bgSecondary)", borderColor: "var(--border)" }}>
-            <h2 className="text-xl font-semibold">No hay productos personalizados</h2>
-            <p className="mt-2 text-sm" style={{ color: "var(--textSecondary)" }}>
-              En este momento no hay productos con personalización disponible.
-            </p>
-          </div>
+          <EmptyState
+            icon="auto_awesome"
+            title="No hay productos personalizados"
+            message="En este momento no hay productos con personalización disponible"
+          />
         ) : (
           <>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold" style={{ background: "color-mix(in srgb, var(--secondary) 15%, white)", color: "var(--primary)" }}>

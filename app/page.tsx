@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import BottomBarPublic from "./components/BottomBarPublic";
 import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton";
+import EmptyState from "./components/EmptyState";
 import { SectionRenderer } from "./landing/sectionRegistry";
 import { getLandingPage } from "./lib/landing-db";
 import { obtenerProductos } from "./lib/productos-db";
 import type { LandingSection } from "./lib/landing-types";
 import { useUser } from "./context/UserContext";
-import FaqSection from "./components/FaqSection";
 
 export default function Home() {
   const { isLogged } = useUser();
@@ -183,11 +183,12 @@ const lastHeroIndex = useMemo(() => {
             ))}
           </div>
         ) : (
-          <div className="flex min-h-screen items-center justify-center px-6 text-center text-sm text-slate-500">
-            No hay secciones publicadas para mostrar.
-          </div>
+          <EmptyState
+            icon="web"
+            title="No hay secciones publicadas"
+            message="El sitio está siendo configurado"
+          />
         )}
-        {!loading && <FaqSection />}
       </main>
       {!isLogged && <BottomBarPublic />}
     </>

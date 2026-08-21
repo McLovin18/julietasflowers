@@ -2,6 +2,7 @@
 import BottomBarPublic from "../components/BottomBarPublic";
 import ProductoCard from "../components/ProductoCard";
 import { Loading3DIcon } from "../components/Loading3DIcon";
+import EmptyState from "../components/EmptyState";
 
 import { useEffect, useState, useMemo, useRef } from "react";
 
@@ -246,15 +247,11 @@ export default function NuevaColeccionPage() {
             <p className="text-xs text-slate-400 dark:text-white/20 mt-6 font-medium tracking-widest uppercase">Cargando catálogo</p>
           </div>
         ) : productosFiltrados.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center">
-              <span className="material-icons-round text-3xl text-slate-300 dark:text-white/20">search_off</span>
-            </div>
-            <div>
-              <p className="font-semibold text-slate-700 dark:text-white/80">Sin resultados</p>
-              <p className="text-sm text-slate-400 dark:text-white/30 mt-1 max-w-60">Prueba otros términos o selecciona otra categoría</p>
-            </div>
-          </div>
+          <EmptyState
+            icon="search_off"
+            title="Sin resultados"
+            message="Prueba otros términos o selecciona otra categoría"
+          />
         ) : (
           <>
             <div className={`grid grid-cols-2 gap-2 lg:grid-cols-5 animate-in fade-in duration-700`}>

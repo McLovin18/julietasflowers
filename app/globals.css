@@ -3,71 +3,106 @@
 
 :root {
   /* ============================================================
-     PALETA DE COLORES — Tienda Virtual
-     Tobacco  #B59E7D
-     Mahogany #584738
-     Vanilla  #F1EADA
-     Mountain #AAA396
-     Sand     #CEC1A8
+     PALETA DE COLORES — Julieta's Flowers (UX-Optimized)
+     Diseñado para evitar fatiga visual y mantener elegancia
+     
+     COLORES PRINCIPALES:
+     - Negro suave (no agresivo):      #1a1a1a
+     - Beige claro (navbar suave):     #f8f3eb
+     - Beige medio (footer):           #e8ddd0
+     - Beige rosadito (calidez):       #f0e6e0
+     - Dorado elegante (no brillante): #c9a030
+     - Blanco vintage (base):          #f5f0e8
+     
+     COLORES TEMPORALES:
+     - San Valentín (rojo vino suave): #710419
+     - Día de flores (amarillo suave): #ffd70e
      ============================================================ */
 
   /* --- Colores base de la paleta (para uso directo si se necesita) --- */
-  --color-tobacco: #b59e7d;
-  --color-mahogany: #584738;
-  --color-vanilla: #f0ede4;
-  --color-mountain: #aaa396;
-  --color-sand: #cec1a8;
+  --color-black-soft: #1a1a1a;       /* Negro suave, UX-friendly */
+  --color-beige-light: #faf7f2;      /* Beige muy claro para navbar (más neutro) */
+  --color-beige-medium: #f0ebe5;     /* Beige medio para footer (más suave) */
+  --color-beige-pink: #f5f0e8;        /* Beige rosadito muy sutil para calidez */
+  --color-gold-elegant: #c9a030;      /* Dorado elegante SOLO para acentos puntuales */
+  --color-white-vintage: #f5f0e8;     /* Blanco vintage base */
+  --color-gray-dark: #3d3d3d;         /* Gris oscuro más suave para footer */
+  --color-gray-medium: #5a5a5a;       /* Gris medio más suave para texto secundario */
+  
+  /* Colores temporales */
+  --color-red-wine: #710419;          /* San Valentín */
+  --color-yellow: #ffd70e;            /* Día de flores */
 
   /* --- Variantes derivadas (hover / active) --- */
-  --color-mahogany-dark: #3f332a;   /* mahogany oscurecido, hover en botones oscuros */
-  --color-tobacco-dark: #9c8567;    /* tobacco oscurecido, hover en botones tobacco */
-  --color-vanilla-dark: #e7dcc8;    /* vanilla oscurecido, hover sobre fondos claros */
+  --color-gold-dark: #a67f22;         /* dorado oscurecido, hover */
+  --color-beige-light-hover: #f5f0e8; /* beige rosadito muy sutil, hover navbar */
+  --color-beige-medium-dark: #e8e3db; /* beige más oscuro muy sutil, hover footer */
+  --color-red-wine-dark: #5a0314;     /* rojo vino oscurecido */
+  --color-yellow-dark: #e5c400;       /* amarillo oscurecido */
 
-  /* --- Semántica --- */
-  --background: var(--color-vanilla);
-  --foreground: var(--color-mahogany);
+  /* --- Semántica general --- */
+  --background: var(--color-white-vintage);
+  --foreground: var(--color-black-soft);
 
-  --bg: var(--color-vanilla);
-  --bgSecondary: var(--color-sand);
+  --bg: var(--color-white-vintage);
+  --bgSecondary: var(--color-beige-pink);
 
-  --text: var(--color-mahogany);
-  --textSecondary: var(--color-tobacco);
+  --text: var(--color-black-soft);
+  --textSecondary: var(--color-gray-medium);
 
-  --border: var(--color-sand);
+  --border: var(--color-beige-medium);
+
+  /* --- Navbar específico (suave, neutro, sin dorado) --- */
+  --navbar-bg: var(--color-beige-light);
+  --navbar-text: var(--color-black-soft);
+  --navbar-hover: var(--color-beige-pink);
+  --navbar-link: var(--color-gray-medium);
+  --navbar-link-hover: var(--color-black-soft);
+
+  /* --- Footer específico (neutro, sin dorado) --- */
+  --footer-bg: var(--color-beige-medium);
+  --footer-text: var(--color-gray-dark);
+  --footer-link: var(--color-gray-medium);
+  --footer-link-hover: var(--color-black-soft);
 
   /* --- Colores de marca / acción --- */
-  --primary: var(--color-mahogany);
-  --primaryHover: var(--color-mahogany-dark);
-  --primaryForeground: var(--color-vanilla);
+  --primary: var(--color-gold-elegant);
+  --primaryHover: var(--color-gold-dark);
+  --primaryForeground: var(--color-black-soft);
 
-  --secondary: var(--color-tobacco);
-  --secondaryHover: var(--color-tobacco-dark);
-  --secondaryForeground: var(--color-mahogany);
+  --secondary: var(--color-beige-pink);
+  --secondaryHover: var(--color-beige-medium);
+  --secondaryForeground: var(--color-black-soft);
 
-  --accent: var(--color-mountain);
-  --accentForeground: var(--color-mahogany);
+  --accent: var(--color-red-wine);
+  --accentForeground: var(--color-white-vintage);
 
-  --muted: var(--color-sand);
-  --mutedForeground: var(--color-tobacco);
+  --muted: var(--color-beige-medium);
+  --mutedForeground: var(--color-gray-medium);
 
-  --card: var(--color-vanilla);
-  --cardForeground: var(--color-mahogany);
+  --card: var(--color-white-vintage);
+  --cardForeground: var(--color-black-soft);
 
-  --galleryImgBg: var(--color-sand);
+  --galleryImgBg: var(--color-beige-pink);
 
-  /* --- Tipografía (Yuyu por defecto, excepto navbar) --- */
-  --font-body-family: "Cormorant Garamond", Georgia, serif;
+  /* --- Tipografía Julieta's Flowers --- */
+  /* VONCA alternativa: Playfair Display (minimalista, elegante contemporánea) */
+  --font-body-family: var(--font-vonca), "Playfair Display", "Cormorant Garamond", Georgia, serif;
   --font-body-style: normal;
   --font-body-weight: 400;
   --font-body-weight-bold: 700;
-  --font-heading-family: "Cormorant Garamond", Georgia, serif;
+  
+  /* Lovely Flowers alternativa: Great Vibes (cursiva, ornamental, sofisticada) */
+  --font-heading-family: var(--font-lovely-flowers), "Great Vibes", var(--font-vonca), "Playfair Display", "Cormorant Garamond", Georgia, serif;
   --font-heading-style: normal;
   --font-heading-weight: 400;
+  
   --font-body-scale: 1.0;
   --font-heading-scale: 1.35;
-  /* --- Tipografía original para navbar --- */
-  --font-navbar-body-family: "Cormorant Garamond", serif;
-  --font-navbar-heading-family: var(--font-source-serif-4), "Source Serif 4", serif;
+  
+  /* --- Tipografía para navbar (mantiene Playfair Display) --- */
+  --font-navbar-body-family: var(--font-vonca), "Playfair Display", "Cormorant Garamond", serif;
+  --font-navbar-heading-family: var(--font-vonca), "Playfair Display", "Cormorant Garamond", serif;
 }
 
 @theme inline {
@@ -137,6 +172,77 @@ nav h4,
 nav h5,
 nav h6 {
   font-family: var(--font-navbar-heading-family);
+}
+
+/* Clases de utilidad para las fuentes de Julieta's Flowers */
+.font-vonca {
+  font-family: var(--font-vonca), "Playfair Display", "Cormorant Garamond", Georgia, serif;
+}
+
+.font-lovely-flowers {
+  font-family: var(--font-lovely-flowers), "Great Vibes", cursive;
+}
+
+/* ============================================
+   Estilos UX-Optimizados para componentes principales
+   ============================================ */
+
+/* Navbar - Suave, neutro, sin dorado */
+.navbar-ux {
+  background-color: var(--navbar-bg);
+  color: var(--navbar-text);
+  border-bottom: 1px solid var(--color-beige-medium);
+}
+
+.navbar-ux a {
+  color: var(--navbar-link);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.navbar-ux a:hover {
+  color: var(--navbar-link-hover);
+  background-color: var(--navbar-hover);
+}
+
+/* Footer - Neutro, sin dorado, diferenciado por tono de beige */
+.footer-ux {
+  background-color: var(--footer-bg);
+  color: var(--footer-text);
+  border-top: 1px solid var(--color-beige-medium);
+}
+
+.footer-ux a {
+  color: var(--footer-link);
+  transition: color 0.2s ease;
+}
+
+.footer-ux a:hover {
+  color: var(--footer-link-hover);
+}
+
+/* Botones con UX refinado */
+.btn-primary-ux {
+  background-color: var(--color-gold-elegant);
+  color: var(--color-black-soft);
+  border: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-primary-ux:hover {
+  background-color: var(--color-gold-dark);
+  transform: translateY(-1px);
+}
+
+.btn-secondary-ux {
+  background-color: var(--color-beige-pink);
+  color: var(--color-black-soft);
+  border: 1px solid var(--color-beige-medium);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-secondary-ux:hover {
+  background-color: var(--color-beige-medium);
+  border-color: var(--color-beige-medium-dark);
 }
 
 /* Animación 3D de rotación para skeletons */

@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import { obtenerBodegas } from "../lib/bodegas-db";
 import { getSnapshotPricing } from "../lib/pricing";
@@ -133,7 +132,7 @@ export default function CartPage() {
       }
     }
 
-    const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "0988705890";
+    const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "0967760599";
     const message = await generateWhatsAppMessage();
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
   };
@@ -163,7 +162,7 @@ export default function CartPage() {
         </span>
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-[var(--text)]">
+        <h3 className="text-lg font-semibold text-[var(--text)] font-lovely-flowers" style={{ fontSize: "1.5rem", lineHeight: "1.4" }}>
           Tu carrito está vacío
         </h3>
         <p className="text-sm text-[var(--textSecondary)] mt-1">

@@ -31,14 +31,14 @@ const IconLocation = () => (
 );
 
 const socialLinks = [
-  { href: "https://www.instagram.com/juliana.basics/", label: "Instagram", Icon: IconInstagram },
-  { href: "https://wa.me/593988705890", label: "WhatsApp", Icon: IconWhatsApp },
+  { href: "https://www.instagram.com/julietas_flowers/", label: "Instagram", Icon: IconInstagram },
+  { href: "https://wa.me/593967760599", label: "WhatsApp", Icon: IconWhatsApp },
 ];
 
 // 👉 Reemplaza estos 3 valores con la información real del negocio
-const WHATSAPP_NUMBER = "593988705890"; // solo números, con código de país, sin '+' ni espacios
-const WHATSAPP_DISPLAY = "+593 98 870 5890"; // como se muestra al usuario
-const MAPS_URL = "https://l.instagram.com/?u=https%3A%2F%2Fmaps.app.goo.gl%2FB4LVAYLxvMuwXsuE9%3Fg_st%3Dic%26utm_source%3Dig%26utm_medium%3Dsocial%26utm_content%3Dlink_in_bio%26fbclid%3DPAZXh0bgNhZW0CMTEAc3J0YwZhcHBfaWQPOTM2NjE5NzQzMzkyNDU5AAGn_oqrYzsBMtPRc2N2aptDbGXg-iG5-VFhRCD6m4VnleH_jHY5zLezUdJza74_aem_B3z_UlltnRGnSSLfWrFf4w&e=AUD8pWkXfdA34eOteUrOjVR1HPRDj6F7-to54sCO4vLiuhm1_Mlp2-GkL3MlI46kCH00PHVdOMrM-W9V32NSvMywrrydKa5uKx-XFxb_vRVGZuWMIZrLC9G1j6ofwMn3GLJ2er0"; // enlace real de Google Maps
+const WHATSAPP_NUMBER = "593967760599"; // solo números, con código de país, sin '+' ni espacios
+const WHATSAPP_DISPLAY = "+593 96 776 0599"; // como se muestra al usuario
+const MAPS_URL = "https://maps.app.goo.gl/REEMPLAZAR"; // 👉 pega aquí el enlace real de Google Maps de Julietas Flowers
 
 const Footer: React.FC = () => {
   const pathname = usePathname();
@@ -59,13 +59,13 @@ const Footer: React.FC = () => {
             {/* Columna 1: Información de la tienda */}
             <div className="flex flex-col items-center md:items-start text-center md:text-left gap-1">
               <span className="text-base font-bold tracking-wide text-[var(--text)]">
-                Juliana Basics
+                Julietas Flowers
               </span>
               <span className="text-xs text-[var(--textSecondary)]">
-                Moda &amp; Outfits
+                Florería &amp; Detalles
               </span>
               <p className="text-xs text-[var(--textSecondary)] mt-1 max-w-[220px]">
-                Encuentra las últimas tendencias en ropa y accesorios, pensadas para cada estilo.
+                Creamos emociones con cada flor. Arreglos personalizados y experiencias únicas en Samborondón.
               </p>
             </div>
 
@@ -110,7 +110,7 @@ const Footer: React.FC = () => {
                 onClick={() => trackLinkClick().catch(console.error)}
               >
                 <IconLocation />
-                <span>ɢʏᴇ - ᴀʟʙᴏʀᴀᴅᴀ 𝟪ᴠᴀ ᴇᴛᴀᴘᴀ</span>
+                <span>Entre Ríos - Samborondón</span>
               </a>
             </div>
           </div>
@@ -122,7 +122,7 @@ const Footer: React.FC = () => {
         {/* Copyright row */}
         <div className={styles.ftCopyRow}>
           <p className={styles.ftCopyText}>
-            © {new Date().getFullYear()} Juliana Basics 2026. Todos los derechos reservados.
+            © {new Date().getFullYear()} Julietas Flowers. Todos los derechos reservados.
           </p>
           <div className={styles.ftCopyRight}>
             <div className={styles.ftBadge}>

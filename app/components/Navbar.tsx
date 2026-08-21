@@ -310,7 +310,7 @@ export const Navbar = () => {
                 className="font-heading whitespace-nowrap text-xl sm:text-2xl"
                 style={{ letterSpacing: "0.12em", color: BRAND.white }}
               >
-                JULIANA <span style={{ color: BRAND.gold }}>BASICS</span>
+                JULIETAS FLOWERS
               </span>
             </a>
           </div>
@@ -626,7 +626,7 @@ export const Navbar = () => {
                 className="font-bold text-base"
                 style={{ color: BRAND.white, letterSpacing: "0.08em" }}
               >
-                JULIANA <span style={{ color: BRAND.gold }}>BASICS</span>
+                JULIETAS FLOWERS
               </span>
               <button
                 onClick={() => setMobileOpen(false)}
