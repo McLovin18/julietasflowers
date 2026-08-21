@@ -25,6 +25,8 @@
   --color-beige-medium: #f0ebe5;     /* Beige medio para footer (más suave) */
   --color-beige-pink: #f5f0e8;        /* Beige rosadito muy sutil para calidez */
   --color-gold-elegant: #c9a030;      /* Dorado elegante SOLO para acentos puntuales */
+  --color-gold-dark: #5a4510;         /* Dorado muy oscuro para fondos (contrasta con logo) */
+  --color-gold-darker: #3a2a08;       /* Dorado extremadamente oscuro para hover */
   --color-white-vintage: #f5f0e8;     /* Blanco vintage base */
   --color-gray-dark: #3d3d3d;         /* Gris oscuro más suave para footer */
   --color-gray-medium: #5a5a5a;       /* Gris medio más suave para texto secundario */
@@ -34,7 +36,7 @@
   --color-yellow: #ffd70e;            /* Día de flores */
 
   /* --- Variantes derivadas (hover / active) --- */
-  --color-gold-dark: #a67f22;         /* dorado oscurecido, hover */
+  --color-gold-hover: #a67f22;       /* dorado oscurecido para hover de acentos */
   --color-beige-light-hover: #f5f0e8; /* beige rosadito muy sutil, hover navbar */
   --color-beige-medium-dark: #e8e3db; /* beige más oscuro muy sutil, hover footer */
   --color-red-wine-dark: #5a0314;     /* rojo vino oscurecido */
@@ -52,23 +54,23 @@
 
   --border: var(--color-beige-medium);
 
-  /* --- Navbar específico (suave, neutro, sin dorado) --- */
-  --navbar-bg: var(--color-beige-light);
-  --navbar-text: var(--color-black-soft);
-  --navbar-hover: var(--color-beige-pink);
-  --navbar-link: var(--color-gray-medium);
-  --navbar-link-hover: var(--color-black-soft);
+  /* --- Navbar específico (dorado oscuro, textos blancos) --- */
+  --navbar-bg: var(--color-gold-dark);
+  --navbar-text: #ffffff;              /* Blanco puro */
+  --navbar-hover: var(--color-gold-darker);
+  --navbar-link: rgba(255, 255, 255, 0.85); /* Blanco ligeramente transparente */
+  --navbar-link-hover: #ffffff;       /* Blanco puro al hover */
 
-  /* --- Footer específico (neutro, sin dorado) --- */
-  --footer-bg: var(--color-beige-medium);
-  --footer-text: var(--color-gray-dark);
-  --footer-link: var(--color-gray-medium);
-  --footer-link-hover: var(--color-black-soft);
+  /* --- Footer específico (dorado oscuro, textos blancos) --- */
+  --footer-bg: var(--color-gold-dark);
+  --footer-text: #ffffff;              /* Blanco puro */
+  --footer-link: rgba(255, 255, 255, 0.85); /* Blanco ligeramente transparente */
+  --footer-link-hover: #ffffff;       /* Blanco puro al hover */
 
   /* --- Colores de marca / acción --- */
-  --primary: var(--color-gold-elegant);
-  --primaryHover: var(--color-gold-dark);
-  --primaryForeground: var(--color-black-soft);
+  --primary: var(--color-gold-dark);         /* Dorado muy oscuro para fondos (navbar/footer) */
+  --primaryHover: var(--color-gold-darker);   /* Dorado extremadamente oscuro para hover */
+  --primaryForeground: #ffffff;              /* Texto blanco puro sobre dorado oscuro */
 
   --secondary: var(--color-beige-pink);
   --secondaryHover: var(--color-beige-medium);

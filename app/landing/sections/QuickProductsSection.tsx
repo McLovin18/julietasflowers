@@ -219,7 +219,7 @@ export default function QuickProductsSection({
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-slate-500 dark:text-slate-400 font-lovely-flowers" style={{ fontSize: "1.2rem", lineHeight: "1.4" }}>No hay productos en esta categoría</p>
+            <p className="text-slate-500 dark:text-slate-400">No hay productos en esta categoría</p>
           </div>
         )}
 

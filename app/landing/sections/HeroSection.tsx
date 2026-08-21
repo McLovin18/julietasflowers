@@ -144,6 +144,22 @@ export default function HeroSection({
   const BASE_IMAGE_HEIGHT = 1000;
   const BASE_ASPECT_RATIO = BASE_IMAGE_WIDTH / BASE_IMAGE_HEIGHT; // 2.4
 
+    const [screenType, setScreenType] = React.useState<"mobile" | "tablet" | "desktop">("desktop");
+
+  React.useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+
+      if (w < 640) setScreenType("mobile");
+      else if (w < 1024) setScreenType("tablet");
+      else setScreenType("desktop");
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   // ── Helper para convertir posiciones de píxeles a porcentajes
   // positionsSource: se puede pasar `current.fieldPositions` para priorizar posiciones por item
   const getPositioningStyle = (
@@ -346,31 +362,14 @@ export default function HeroSection({
   };
 
 
-  const [screenType, setScreenType] = React.useState<"mobile" | "tablet" | "desktop">("desktop");
-
-
-
-React.useEffect(() => {
-  const update = () => {
-    const w = window.innerWidth;
-
-    if (w < 640) setScreenType("mobile");
-    else if (w < 1024) setScreenType("tablet");
-    else setScreenType("desktop");
-  };
-
-  update();
-  window.addEventListener("resize", update);
-  return () => window.removeEventListener("resize", update);
-}, []);
 
 const innerStyle: React.CSSProperties = {
   aspectRatio:
     screenType === "mobile"
-      ? "6 / 5"
+      ? "6 / 3"
       : screenType === "tablet"
-      ? "11 / 9"
-      : "2400 / 1300",
+      ? "11 / 4"
+      : "2400 / 900",
   overflow: "hidden",
 };
 
@@ -502,8 +501,8 @@ const innerStyle: React.CSSProperties = {
 
         {/* Contenido textual por defecto (sin posicionamiento personalizado) */}
         {!fieldPositions?.badge && !fieldPositions?.title && !fieldPositions?.subtitle && (
-          <div className="absolute left-0 right-0 bottom-7 z-20 flex flex-col items-start text-left gap-0 sm:gap-0 pb-1 px-2 sm:pb-4 sm:px-8 w-full max-w-full">
-            <div className="absolute sm:bottom-50 bottom-15">
+          <div className="absolute left-0 right-0 bottom-1 z-20 flex flex-col items-start text-left gap-0 sm:gap-0 pb-1 px-2 sm:pb-4 sm:px-8 w-full max-w-full">
+            <div className="absolute sm:bottom-40 bottom-10">
                 {current.badge && (
                   <span
                     className="inline-block px-2 py-0.5 text-[6px] sm:px-3 sm:py-1 sm:text-xs font-bold tracking-widest uppercase bg-white/90 text-black dark:bg-slate-900/90 dark:text-white rounded-full shadow"

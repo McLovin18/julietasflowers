@@ -9,6 +9,7 @@ console.log("[Firebase Admin] FIREBASE_PRIVATE_KEY exists:", !!process.env.FIREB
 
 let db: admin.firestore.Firestore;
 let adminAuth: admin.auth.Auth;
+let initializationError: Error | null = null;
 
 if (!admin.apps.length) {
   try {
@@ -38,38 +39,44 @@ if (!admin.apps.length) {
         privateKey = privateKey + "\n-----END PRIVATE KEY-----";
       }
       
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: privateKey,
-        }),
-      });
-      console.log("[Firebase Admin] 6. ✅ Initialized with env vars");
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: privateKey,
+          }),
+        });
+        console.log("[Firebase Admin] 6. ✅ Initialized with env vars");
+      } catch (certError) {
+        console.error("[Firebase Admin] ❌ Certificate initialization failed:", certError);
+        throw certError;
+      }
     } else {
       console.log("[Firebase Admin] 4. Using default credentials...");
-      admin.initializeApp();
-      console.log("[Firebase Admin] 6. ✅ Initialized with default credentials");
+      try {
+        admin.initializeApp();
+        console.log("[Firebase Admin] 6. ✅ Initialized with default credentials");
+      } catch (defaultError) {
+        console.error("[Firebase Admin] ❌ Default initialization failed:", defaultError);
+        throw defaultError;
+      }
     }
     
     console.log("[Firebase Admin] 7. Getting Firestore instance...");
     db = admin.firestore();
     db.settings({ ignoreUndefinedProperties: true });
     
-    // Test the connection with a simple get
-    console.log("[Firebase Admin] 8. Testing Firestore connection...");
-    const testDoc = db.collection("ordenes").limit(1).get();
-    testDoc.then(() => {
-      console.log("[Firebase Admin] 9. ✅ Firestore connection test successful!");
-    }).catch((err) => {
-      console.error("[Firebase Admin] 9. ❌ Firestore connection test failed:", err);
-    });
+    // NOTE: Removed connection test to prevent initialization failures
+    // The connection will be tested when actually needed
     
     adminAuth = admin.auth();
-    console.log("[Firebase Admin] 10. ✅ All instances ready!");
+    console.log("[Firebase Admin] 8. ✅ All instances ready!");
   } catch (err) {
     console.error("[Firebase Admin] ❌ Initialization error:", err);
-    throw err;
+    initializationError = err as Error;
+    // Don't throw - allow app to continue even if Firebase Admin fails
+    console.warn("[Firebase Admin] ⚠️ App will continue but Firebase Admin features may not work");
   }
 } else {
   console.log("[Firebase Admin] 3. Already initialized, skipping...");
@@ -78,5 +85,5 @@ if (!admin.apps.length) {
   adminAuth = admin.auth();
 }
 
-export { db, adminAuth };
+export { db, adminAuth, initializationError };
 export default admin;

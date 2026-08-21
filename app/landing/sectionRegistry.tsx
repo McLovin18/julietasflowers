@@ -11,6 +11,7 @@ import HeroSection, { HeroSectionProps } from "./sections/HeroSection";
 import BannerSection, { BannerSectionProps } from "./sections/BannerSection";
 import GallerySection, { GallerySectionProps } from "./sections/GallerySection";
 import FeaturedProductsSection, { FeaturedProductsSectionProps } from "./sections/FeaturedProductsSection";
+import FeatureProductsSection, { FeatureProductsSectionProps } from "./sections/FeatureProductsSection";
 import FeaturedCategoriesSection, { FeaturedCategoriesSectionProps } from "./sections/FeaturedCategoriesSection";
 import Hero360Section, { Hero360SectionProps } from "./sections/Hero360Section";
 import GoogleCommentsSection, { GoogleCommentsSectionProps } from "./sections/GoogleCommentsSection";
@@ -40,6 +41,7 @@ export const sectionRegistry: Record<string, ComponentType<any>> = {
   banner: BannerSection,
   gallery: GallerySection,
   featuredProducts: FeaturedProductsSection,
+  featureProducts: FeatureProductsSection,
   featuredCategories: FeaturedCategoriesSection,
   titleSubtitle: TitleSubtitleSection,
 };

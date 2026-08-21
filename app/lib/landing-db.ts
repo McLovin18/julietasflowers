@@ -58,9 +58,40 @@ export const DEFAULT_LANDING = {
  */
 const getLandingByVersion = async (version: "draft" | "published") => {
   try {
+    console.log("[Landing DB] Starting getLandingByVersion:", version);
+    
+    // Check if Firebase is properly configured
+    if (!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+      console.error("[Landing DB] Firebase project ID is missing");
+      throw new Error("Firebase configuration is incomplete");
+    }
+    
     const landingRef = doc(db, "landingPage", "main");
+    console.log("[Landing DB] Firestore ref created:", landingRef.path);
+    
     const landingSnap = await getDoc(landingRef);
 
+    console.log("🔥 FIREBASE TEST");
+    console.log(
+      "Proyecto:",
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    );
+    console.log(
+      "Documento:",
+      landingRef.path
+    );
+    console.log(
+      "Existe:",
+      landingSnap.exists()
+    );
+    console.log(
+      "Data:",
+      landingSnap.data()
+    );
+
+
+
+    
     let base: any | null = null;
     if (landingSnap.exists()) {
       base = landingSnap.data();
@@ -396,9 +427,39 @@ export const saveLandingSections = async (
       `✅ Secciones ${version} guardadas en Firebase:`,
       sections?.length || 0
     );
+    
+    // Save to localStorage as backup
+    if (typeof window !== 'undefined') {
+      try {
+        const storageKey = version === "draft" ? "landing_draft" : "landing_published";
+        const existingData = localStorage.getItem(storageKey);
+        const parsedData = existingData ? JSON.parse(existingData) : { id: "main" };
+        parsedData.sections = sections;
+        localStorage.setItem(storageKey, JSON.stringify(parsedData));
+      } catch (localError) {
+        console.error("[Landing DB] Error saving sections to localStorage:", localError);
+      }
+    }
+    
     return { success: true, sections };
   } catch (error) {
     console.error("Error guardando secciones:", error);
+    
+    // If Firebase fails, save to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const storageKey = version === "draft" ? "landing_draft" : "landing_published";
+        const existingData = localStorage.getItem(storageKey);
+        const parsedData = existingData ? JSON.parse(existingData) : { id: "main" };
+        parsedData.sections = sections;
+        localStorage.setItem(storageKey, JSON.stringify(parsedData));
+        console.log(`[Landing DB] Saved sections to localStorage due to Firebase error`);
+        return { success: true, sections, offline: true };
+      } catch (localError) {
+        console.error("[Landing DB] Error saving sections to localStorage:", localError);
+      }
+    }
+    
     throw error;
   }
 };
@@ -419,19 +480,15 @@ export const getLandingSections = async (
 };
 
 /**
- * Copia el estado de draft a published (hero, destacados y secciones).
+ * Copia el estado de draft a published (secciones dinámicas).
  */
 export const publishLanding = async () => {
   try {
     const landingRef = doc(db, "landingPage", "main");
     const draft = await getLandingByVersion("draft");
 
-    // Hero y destacados publicados + legacy para compatibilidad
+    // Solo publicar secciones dinámicas
     const updatePayload: any = {
-      heroPublished: draft.hero,
-      featuredProductsPublished: draft.featuredProducts || [],
-      hero: draft.hero,
-      featuredProducts: draft.featuredProducts || [],
       updatedAt: Timestamp.now(),
     };
 

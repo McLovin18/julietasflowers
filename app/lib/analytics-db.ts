@@ -62,11 +62,15 @@ export async function trackPageView(): Promise<void> {
       const errorText = await response.text();
       console.error("[Analytics] API returned non-ok status:", response.status);
       console.error("[Analytics] API response:", errorText);
+      
+      // Don't throw error - analytics failures shouldn't break the app
+      // Just log and continue
     } else {
       console.log("[Analytics] Page view tracked successfully");
     }
   } catch (error) {
     console.error("[Analytics] Error tracking page view:", error);
+    // Don't throw error - analytics failures shouldn't break the app
   }
 }
 
@@ -97,11 +101,14 @@ export async function trackClick(
       const errorText = await response.text();
       console.error("[Analytics] Click API returned non-ok status:", response.status);
       console.error("[Analytics] Click API response:", errorText);
+      
+      // Don't throw error - analytics failures shouldn't break the app
     } else {
       console.log("[Analytics] Click tracked successfully");
     }
   } catch (error) {
     console.error("[Analytics] Error tracking click:", error);
+    // Don't throw error - analytics failures shouldn't break the app
   }
 }
 

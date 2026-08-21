@@ -22,7 +22,7 @@ import { LandingSection } from "../../lib/landing-types";
 import { sectionSchemas } from "../../landing/sectionSchemas";
 import { SectionRenderer } from "../../landing/sectionRegistry";
 
-import { obtenerProductos } from "../../lib/productos-db";
+import { obtenerProductos, obtenerProductosDestacados } from "../../lib/productos-db";
 import ProductoCard from "../../components/ProductoCard";
 import DraggablePreviewEditor from "../components/DraggablePreviewEditor";
 
@@ -84,6 +84,7 @@ export default function LandingEditor() {
   const [productos, setProductos] = useState<any[]>([]);
   const [hero, setHero] = useState<any>(null);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [destacadosProducts, setDestacadosProducts] = useState<any[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [addAfterIndex, setAddAfterIndex] = useState<number | null>(null);
@@ -261,9 +262,10 @@ export default function LandingEditor() {
     async function fetchData() {
       setLoading(true);
       try {
-        const [landingData, prods] = await Promise.all([
+        const [landingData, prods, destacados] = await Promise.all([
           getLandingDraft(),
           obtenerProductos(),
+          obtenerProductosDestacados(),
         ]);
 
         setHero(landingData?.hero ?? null);
@@ -280,6 +282,7 @@ export default function LandingEditor() {
           .slice(0, 10);
 
         setFeaturedProducts(recentProducts);
+        setDestacadosProducts(destacados ?? []);
 
         // Migramos secciones antiguas (no JSON) al nuevo formato en memoria
         const rawSections: any[] = landingData?.sections ?? [];
@@ -2018,7 +2021,7 @@ export default function LandingEditor() {
                                   </div>
                                 )}
 
-                                {/* Vista r+�pida de productos destacados para esta secci+�n */}
+                                {/* Vista rápida de productos destacados para esta sección */}
                                 {section.type === "featuredProducts" &&
                                   currentTab === "content" && (
                                     <div className="mt-3 border border-dashed border-slate-200 rounded-md p-3 bg-slate-50 dark:bg-slate-900">
@@ -2035,6 +2038,44 @@ export default function LandingEditor() {
                                       ) : (
                                         <div className="flex items-stretch gap-3 overflow-x-auto pb-1">
                                           {featuredProducts.map((prod: any) => (
+                                            <div
+                                              key={prod.id || String(prod)}
+                                              className="relative group shrink-0 w-40"
+                                            >
+                                              <div className="transform scale-90 origin-top">
+                                                <ProductoCard
+                                                  producto={prod}
+                                                  showCart={false}
+                                                  showEye={false}
+                                                  onClick={() => {}}
+                                                  onAddCart={() => {}}
+                                                  onEye={() => {}}
+                                                />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                {/* Vista rápida de productos destacados personalizados */}
+                                {section.type === "featureProducts" &&
+                                  currentTab === "content" && (
+                                    <div className="mt-3 border border-dashed border-slate-200 rounded-md p-3 bg-slate-50 dark:bg-slate-900">
+                                      <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2 flex items-center gap-1">
+                                        <span className="material-icons-round text-[14px] text-purple-500">
+                                          star
+                                        </span>
+                                        Productos destacados
+                                      </h4>
+                                      {destacadosProducts.length === 0 ? (
+                                        <p className="text-[11px] text-slate-500">
+                                          No hay productos destacados disponibles. Marca productos como destacados en el inventario.
+                                        </p>
+                                      ) : (
+                                        <div className="flex items-stretch gap-3 overflow-x-auto pb-1">
+                                          {destacadosProducts.map((prod: any) => (
                                             <div
                                               key={prod.id || String(prod)}
                                               className="relative group shrink-0 w-40"
@@ -3224,7 +3265,6 @@ export default function LandingEditor() {
             <button
               onClick={async () => {
                 setSaving(true);
-                // Guardar secciones (borrador)
                 await saveLandingSections(sections);
                 setSaving(false);
                 alert("Secciones guardadas como borrador");
@@ -3357,6 +3397,8 @@ export default function LandingEditor() {
 
                       if (section.type === "featuredProducts") {
                         previewSection.props = { ...(section.props || {}), products: featuredProducts, device: previewDevice };
+                      } else if (section.type === "featureProducts") {
+                        previewSection.props = { ...(section.props || {}), products: destacadosProducts, device: previewDevice };
                       } else if (section.type === "featuredCategories") {
                         const currentItems = Array.isArray((section.props as any)?.items)
                           ? (section.props as any).items
@@ -3481,6 +3523,8 @@ export default function LandingEditor() {
                         let previewSection = { ...section } as any;
                         if (section.type === "featuredProducts") {
                           previewSection.props = { ...(section.props || {}), products: featuredProducts, device: previewDevice };
+                        } else if (section.type === "featureProducts") {
+                          previewSection.props = { ...(section.props || {}), products: destacadosProducts, device: previewDevice };
                         } else if (section.type === "featuredCategories") {
                           previewSection.props = { ...(section.props || {}), device: previewDevice };
                         } else if (section.type === "hero") {

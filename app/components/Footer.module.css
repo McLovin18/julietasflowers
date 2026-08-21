@@ -94,7 +94,7 @@
 
 .ftLinks a {
   font-size: 13.5px;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   font-family: var(--font-body-family);
   font-style: var(--font-body-style);
@@ -141,7 +141,7 @@
 
 .ftContactVal {
   font-size: 13.5px;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.95);
   font-family: var(--font-body-family);
   font-style: var(--font-body-style);
   font-weight: var(--font-body-weight);
@@ -150,7 +150,7 @@
 }
 
 a.ftContactVal:hover {
-  color: #fff;
+  color: #ffffff;
 }
 
 .ftMapWrap {

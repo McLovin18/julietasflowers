@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import admin from "firebase-admin";
-import { db } from "../../../lib/firebase-admin";
+import { db, initializationError } from "../../../lib/firebase-admin";
 
 const ANALYTICS_COLLECTION = "analytics";
 
@@ -20,6 +20,16 @@ function getTodayDate(): string {
 
 export async function POST(req: NextRequest) {
   console.log("[Analytics API] ===== NEW REQUEST =====");
+  
+  // Check if Firebase Admin was initialized properly
+  if (initializationError) {
+    console.error("[Analytics API] ❌ Firebase Admin initialization failed:", initializationError);
+    return NextResponse.json(
+      { error: "Firebase Admin initialization failed", details: initializationError.message },
+      { status: 500 }
+    );
+  }
+  
   try {
     console.log("[Analytics API] 1. Parsing request body...");
     const body = await req.json();
@@ -39,24 +49,38 @@ export async function POST(req: NextRequest) {
     const today = getTodayDate();
     console.log("[Analytics API] 4. Today date:", today);
     
-    console.log("[Analytics API] 5. Creating Firestore doc reference...");
+    // Test Firestore connection before proceeding
+    console.log("[Analytics API] 5. Testing Firestore connection...");
+    try {
+      const testRef = db.collection("_connection_test").doc("test");
+      await testRef.get();
+      console.log("[Analytics API] 6. ✅ Firestore connection verified");
+    } catch (connectionError) {
+      console.error("[Analytics API] ❌ Firestore connection failed:", connectionError);
+      return NextResponse.json(
+        { error: "Firestore connection failed", details: String(connectionError) },
+        { status: 500 }
+      );
+    }
+    
+    console.log("[Analytics API] 7. Creating Firestore doc reference...");
     const docRef = db.collection(ANALYTICS_COLLECTION).doc(today);
-    console.log("[Analytics API] 6. Doc ref created:", { collection: ANALYTICS_COLLECTION, doc: today });
+    console.log("[Analytics API] 8. Doc ref created:", { collection: ANALYTICS_COLLECTION, doc: today });
 
-    console.log(`[Analytics API] 7. Processing ${eventType} for device ${deviceId}`);
+    console.log(`[Analytics API] 9. Processing ${eventType} for device ${deviceId}`);
 
     if (eventType === "pageView") {
-      console.log("[Analytics API] 8a. Branch: pageView");
+      console.log("[Analytics API] 10a. Branch: pageView");
       // Track page view
       const docSnap = await docRef.get();
-      console.log("[Analytics API] 8b. Document exists:", docSnap.exists);
+      console.log("[Analytics API] 10b. Document exists:", docSnap.exists);
 
       if (docSnap.exists) {
         const data = docSnap.data() as any;
-        console.log("[Analytics API] 8c. Existing doc data:", data);
+        console.log("[Analytics API] 10c. Existing doc data:", data);
         
         if (!data.visitorIds || !data.visitorIds.includes(deviceId)) {
-          console.log("[Analytics API] 8d. New visitor, incrementing count...");
+          console.log("[Analytics API] 10d. New visitor, incrementing count...");
           const updatedVisitors = [...(data.visitorIds || []), deviceId];
           await docRef.update({
             visitorIds: updatedVisitors,
@@ -68,7 +92,7 @@ export async function POST(req: NextRequest) {
           console.log(`[Analytics API] Page view - returning visitor, no update`);
         }
       } else {
-        console.log("[Analytics API] 8e. Creating new analytics doc...");
+        console.log("[Analytics API] 10e. Creating new analytics doc...");
         await docRef.set({
           date: today,
           uniqueVisitors: 1,
@@ -86,27 +110,27 @@ export async function POST(req: NextRequest) {
         console.log(`[Analytics API] ✅ Created new analytics doc for today`);
       }
     } else if (eventType === "click") {
-      console.log("[Analytics API] 8a. Branch: click");
+      console.log("[Analytics API] 10a. Branch: click");
       // Track click
       const clickType = bodyClickType || "buttonClick";
-      console.log(`[Analytics API] 8b. Click type: ${clickType}`);
+      console.log(`[Analytics API] 10b. Click type: ${clickType}`);
 
       const docSnap = await docRef.get();
-      console.log("[Analytics API] 8c. Document exists:", docSnap.exists);
+      console.log("[Analytics API] 10c. Document exists:", docSnap.exists);
 
       if (docSnap.exists) {
-        console.log("[Analytics API] 8d. Updating existing doc with click...");
+        console.log("[Analytics API] 10d. Updating existing doc with click...");
         const updateData: any = {
           totalClicks: admin.firestore.FieldValue.increment(1),
           lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
         };
         updateData[`clicksByType.${clickType}`] = admin.firestore.FieldValue.increment(1);
-        console.log("[Analytics API] 8e. Update data:", updateData);
+        console.log("[Analytics API] 10e. Update data:", updateData);
 
         await docRef.update(updateData);
         console.log(`[Analytics API] ✅ Updated existing doc with click`);
       } else {
-        console.log("[Analytics API] 8d. Creating new doc for click...");
+        console.log("[Analytics API] 10d. Creating new doc for click...");
         const newClicksByType = {
           productClick: 0,
           categoryClick: 0,

@@ -24,8 +24,8 @@ const BRAND = {
   goldBright: "var(--secondaryHover)",
   border: "var(--border)",
   borderSoft: "color-mix(in srgb, var(--border) 70%, transparent)",
-  white: "var(--primaryForeground)",
-  textMuted: "color-mix(in srgb, var(--primaryForeground) 80%, transparent)",
+  white: "#ffffff",  // Blanco puro para máximo contraste
+  textMuted: "#ffffff",  // Blanco puro para todos los textos
 };
 
 // ─────────────────────────────────────────────
@@ -306,12 +306,14 @@ export const Navbar = () => {
               href={user ? "/admin" : "/"}
               className="flex items-center gap-2 shrink-0 text-white pointer-events-auto"
             >
-              <span
-                className="font-heading whitespace-nowrap text-xl sm:text-2xl"
-                style={{ letterSpacing: "0.12em", color: BRAND.white }}
-              >
-                JULIETAS FLOWERS
-              </span>
+              <Image
+                src="/logo_jf.png"
+                alt="Julieta's Flowers"
+                width={180}
+                height={40}
+                className="h-8 sm:h-10 w-auto object-contain"
+                priority
+              />
             </a>
           </div>
 
@@ -622,12 +624,14 @@ export const Navbar = () => {
               className="flex items-center justify-between px-5 py-4 border-b"
               style={{ borderColor: BRAND.border }}
             >
-              <span
-                className="font-bold text-base"
-                style={{ color: BRAND.white, letterSpacing: "0.08em" }}
-              >
-                JULIETAS FLOWERS
-              </span>
+              <Image
+                src="/logo_jf.png"
+                alt="Julieta's Flowers"
+                width={150}
+                height={35}
+                className="h-8 w-auto object-contain"
+                priority
+              />
               <button
                 onClick={() => setMobileOpen(false)}
                 className="p-1.5 rounded-xl transition-colors"

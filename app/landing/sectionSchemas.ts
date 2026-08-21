@@ -116,6 +116,18 @@ export const sectionSchemas: { [key: string]: { type: string; label: string; ico
       { name: "title", type: "text", label: "Título", group: "content", stylable: true },
     ],
   },
+  featureProducts: {
+    type: "featureProducts",
+    label: "Productos destacados",
+    icon: "star",
+    fields: [
+      { name: "title", type: "text", label: "Título", group: "content", stylable: true },
+      { name: "backgroundColor", type: "color", label: "Color de fondo", group: "styles" },
+      { name: "textColor", type: "color", label: "Color de texto", group: "styles" },
+      { name: "paddingTop", type: "text", label: "Padding superior", group: "styles" },
+      { name: "paddingBottom", type: "text", label: "Padding inferior", group: "styles" },
+    ],
+  },
   featuredCategories: {
     type: "featuredCategories",
     label: "Categorías destacadas",

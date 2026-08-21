@@ -1,8 +1,6 @@
-// Inicialización de Firebase para el cliente (navegador)
 import { initializeApp, getApps, getApp } from "firebase/app";
-
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -14,25 +12,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Solo inicializa si no hay apps
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
 export { app };
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Habilitar persistencia offline para Firestore
-if (typeof window !== "undefined") {
-  enableIndexedDbPersistence(db, {
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-  }).catch((err) => {
-    if (err.code === "failed-precondition") {
-      console.log("[Firebase] Múltiples pestañas abiertas, persistencia no disponible");
-    } else if (err.code === "unimplemented") {
-      console.log("[Firebase] El navegador no soporta IndexedDB");
+// Enable offline persistence for better user experience
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.log('[Firebase] Multiple tabs open, persistence can only be enabled in one tab at a time.');
+    } else if (err.code === 'unimplemented') {
+      console.log('[Firebase] Persistence is not supported in this browser.');
     } else {
-      console.error("[Firebase] Error al habilitar persistencia:", err);
+      console.error('[Firebase] Persistence enable error:', err);
     }
   });
 }

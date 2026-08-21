@@ -11,6 +11,7 @@ import ProductoCard from "../../components/ProductoCard";
 export type FeaturedProductsSectionProps = {
   title?: string;
   products?: any[];
+  productIds?: string;
   styles?: LandingSectionStyles;
   fieldStyles?: Record<string, LandingFieldStyle>;
   device?: "mobile" | "desktop";
@@ -19,6 +20,7 @@ export type FeaturedProductsSectionProps = {
 export default function FeaturedProductsSection({
   title = "Productos destacados",
   products = [],
+  productIds,
   styles,
   fieldStyles,
   device,
@@ -67,29 +69,38 @@ export default function FeaturedProductsSection({
     return () => obs.disconnect();
   }, [containerRef.current]);
 
-  const effectiveItemsPerView = Math.min(itemsPerView, products.length);
-  const hasCarousel = products.length > effectiveItemsPerView;
+  // Si se proporcionan productIds, filtrar productos específicos
+  const filteredProducts = React.useMemo(() => {
+    if (productIds) {
+      const ids = productIds.split('\n').map(id => id.trim()).filter(id => id);
+      return products.filter((prod: any) => ids.includes(prod.id));
+    }
+    return products;
+  }, [productIds, products]);
+
+  const effectiveItemsPerView = Math.min(itemsPerView, filteredProducts.length);
+  const hasCarousel = filteredProducts.length > effectiveItemsPerView;
 
   useEffect(() => {
     if (!hasCarousel || isHovered || !isVisible) return;
     const id = setInterval(() => {
       setAnimDir("right");
       setIsAnimating(true);
-      setCurrentIndex((prev) => (prev + 1) % products.length);
+      setCurrentIndex((prev) => (prev + 1) % filteredProducts.length);
       setTimeout(() => setIsAnimating(false), 300);
     }, 4000);
     return () => clearInterval(id);
-  }, [hasCarousel, isHovered, products.length]);
+  }, [hasCarousel, isHovered, filteredProducts.length]);
 
   // ── Return condicional DESPUÉS de todos los hooks ──
-  if (!products.length) return null;
+  if (!filteredProducts.length) return null;
 
   const getVisibleProducts = () => {
-    const count = hasCarousel ? effectiveItemsPerView : products.length;
+    const count = hasCarousel ? effectiveItemsPerView : filteredProducts.length;
     const slice: any[] = [];
     for (let i = 0; i < count; i++) {
-      const idx = (currentIndex + i) % products.length;
-      slice.push(products[idx]);
+      const idx = (currentIndex + i) % filteredProducts.length;
+      slice.push(filteredProducts[idx]);
     }
     return slice;
   };
@@ -101,7 +112,7 @@ export default function FeaturedProductsSection({
     if (!hasCarousel || isAnimating) return;
     setAnimDir("left");
     setIsAnimating(true);
-    setCurrentIndex((prev) => (prev - 1 + products.length) % products.length);
+    setCurrentIndex((prev) => (prev - 1 + filteredProducts.length) % filteredProducts.length);
     setTimeout(() => setIsAnimating(false), 300);
   };
 
@@ -109,7 +120,7 @@ export default function FeaturedProductsSection({
     if (!hasCarousel || isAnimating) return;
     setAnimDir("right");
     setIsAnimating(true);
-    setCurrentIndex((prev) => (prev + 1) % products.length);
+    setCurrentIndex((prev) => (prev + 1) % filteredProducts.length);
     setTimeout(() => setIsAnimating(false), 300);
   };
 
@@ -126,7 +137,7 @@ export default function FeaturedProductsSection({
   return (
     <section
       style={{ paddingTop, paddingBottom }}
-      className="w-full max-w-full px-2 md:px-2 flex flex-col items-center m-0 overflow-x-hidden"
+      className="w-full bg-black max-w-full px-2 md:px-2 flex flex-col items-center m-0 overflow-x-hidden"
     >
       {/* Título */}
       {title && (
@@ -198,9 +209,9 @@ export default function FeaturedProductsSection({
           </div>
 
           {/* Dots indicadores */}
-          {hasCarousel && products.length > 1 && (
+          {hasCarousel && filteredProducts.length > 1 && (
             <div className="flex justify-center gap-1.5 mt-6">
-              {Array.from({ length: products.length }).map((_, i) => (
+              {Array.from({ length: filteredProducts.length }).map((_, i) => (
                 <button
                   key={i}
                   aria-label={`Ir a producto ${i + 1}`}

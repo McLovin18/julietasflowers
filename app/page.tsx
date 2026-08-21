@@ -67,19 +67,8 @@ export default function Home() {
 
   const landingSections = useMemo(() => {
     const sections = landing?.sections ?? [];
-    const heroSection = landing?.hero
-      ? [
-          {
-            id: "landing-hero",
-            type: "hero",
-            props: landing.hero,
-            order: -1,
-            hidden: false,
-          } as LandingSection,
-        ]
-      : [];
 
-    return [...heroSection, ...sections]
+    return sections
       .filter((section) => !section.hidden)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [landing]);

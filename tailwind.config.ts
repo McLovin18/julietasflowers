@@ -8,7 +8,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Julieta's Flowers Brand Colors (UX-Optimized - sin dorado en navbar/footer)
+        // Julieta's Flowers Brand Colors (UX-Optimized - dorados muy oscuros, textos blancos)
         'black-soft': {
           DEFAULT: '#1a1a1a',
         },
@@ -25,10 +25,17 @@ const config: Config = {
         },
         'gold-elegant': {
           DEFAULT: '#c9a030',  // SOLO para acentos puntuales
-          dark: '#a67f22',
+          hover: '#a67f22',
+        },
+        'gold-dark': {
+          DEFAULT: '#5a4510',  // Dorado muy oscuro para fondos (navbar/footer)
+          hover: '#3a2a08',    // Dorado extremadamente oscuro para hover
         },
         'white-vintage': {
           DEFAULT: '#f5f0e8',
+        },
+        'white-pure': {
+          DEFAULT: '#ffffff',  // Blanco puro para textos sobre dorado oscuro
         },
         'gray-dark': {
           DEFAULT: '#3d3d3d',  // Más suave
