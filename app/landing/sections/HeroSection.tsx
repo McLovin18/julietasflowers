@@ -502,7 +502,7 @@ const innerStyle: React.CSSProperties = {
         {/* Contenido textual por defecto (sin posicionamiento personalizado) */}
         {!fieldPositions?.badge && !fieldPositions?.title && !fieldPositions?.subtitle && (
           <div className="absolute left-0 right-0 bottom-1 z-20 flex flex-col items-start text-left gap-0 sm:gap-0 pb-1 px-2 sm:pb-4 sm:px-8 w-full max-w-full">
-            <div className="absolute sm:bottom-40 bottom-10">
+            <div className="absolute sm:bottom-40 bottom-16">
                 {current.badge && (
                   <span
                     className="inline-block px-2 py-0.5 text-[6px] sm:px-3 sm:py-1 sm:text-xs font-bold tracking-widest uppercase bg-white/90 text-black dark:bg-slate-900/90 dark:text-white rounded-full shadow"
