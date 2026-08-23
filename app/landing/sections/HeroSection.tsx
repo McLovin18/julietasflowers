@@ -366,7 +366,7 @@ export default function HeroSection({
 const innerStyle: React.CSSProperties = {
   aspectRatio:
     screenType === "mobile"
-      ? "6 / 3"
+      ? "6 / 5"
       : screenType === "tablet"
       ? "11 / 4"
       : "2400 / 900",
