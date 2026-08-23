@@ -67,7 +67,7 @@ export default function FeaturedProductsSection({
   return (
     <section
       style={{ paddingTop, paddingBottom }}
-      className="w-full bg-black max-w-full px-2 md:px-2 flex flex-col items-center m-0 overflow-x-hidden"
+      className="w-full max-w-full px-2 md:px-2 flex flex-col items-center m-0 overflow-x-hidden"
     >
       {/* Título */}
       {title && (
