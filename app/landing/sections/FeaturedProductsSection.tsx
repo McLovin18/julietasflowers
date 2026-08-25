@@ -66,7 +66,11 @@ export default function FeaturedProductsSection({
 
   return (
     <section
-      style={{ paddingTop, paddingBottom }}
+
+      style={{ paddingTop, paddingBottom,background:
+      'radial-gradient(circle at 10% 10%, #e0c9a0 0%, transparent 10%), radial-gradient(circle at 10% 10%, #d4b896 0%, transparent 20%)',
+    opacity: 0.90,
+      }}
       className="w-full max-w-full px-2 md:px-2 flex flex-col items-center m-0 overflow-x-hidden"
     >
       {/* Título */}

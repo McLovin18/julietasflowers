@@ -136,48 +136,62 @@ const lastHeroIndex = useMemo(() => {
   return last;
 }, [landingSections]);
 
-  return (
+    return (
     <>
       <WhatsAppFloatingButton />
-      <main className="min-h-screen w-full" style={{ background: "var(--bg)", color: "var(--text)" }}>
-        {loading ? (
+      <main className="min-h-screen w-full relative" style={{ background: "var(--bg)", color: "var(--text)" }}>
+        {/* Textura/gradiente de fondo — detrás de todo el contenido */}
         <div
-            className="w-full relative overflow-hidden"
-            style={{ aspectRatio: "2400 / 1000", minHeight: "300px", background: "var(--bgSecondary)" }}
-        >
-            <div className="absolute inset-0" style={{ background: "var(--bg)" }} />
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(circle at 20% 20%, #e0c9a0 0%, transparent 50%), radial-gradient(circle at 80% 80%, #d4b896 0%, transparent 50%)",
+            opacity: 0.2,
+            zIndex: 0,
+          }}
+        />
+
+        {/* Contenido real, por encima de la textura */}
+        <div className="relative" style={{ zIndex: 1 }}>
+          {loading ? (
             <div
-            className="absolute inset-0"
-            style={{
-                background: "linear-gradient(90deg, transparent 0%, rgba(252, 211, 77, 0.1) 50%, transparent 100%)",
-                animation: "shimmer 1.8s infinite",
-                backgroundSize: "200% 100%",
-            }}
+              className="w-full relative overflow-hidden"
+              style={{ aspectRatio: "2400 / 1000", minHeight: "300px", background: "var(--bgSecondary)" }}
+            >
+              <div className="absolute inset-0" style={{ background: "var(--bg)" }} />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(90deg, transparent 0%, rgba(252, 211, 77, 0.1) 50%, transparent 100%)",
+                  animation: "shimmer 1.8s infinite",
+                  backgroundSize: "200% 100%",
+                }}
+              />
+              <style>{`
+                @keyframes shimmer {
+                  0% { background-position: -200% 0; }
+                  100% { background-position: 200% 0; }
+                }
+              `}</style>
+            </div>
+          ) : renderedSections.length > 0 ? (
+            <div className="flex flex-col">
+              {renderedSections.map((section, index) => (
+                <SectionRenderer
+                  key={section.id}
+                  section={section}
+                  isLastHero={section.type === "hero" && index === lastHeroIndex}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon="web"
+              title="No hay secciones publicadas"
+              message="El sitio está siendo configurado"
             />
-            <style>{`
-            @keyframes shimmer {
-                0% { background-position: -200% 0; }
-                100% { background-position: 200% 0; }
-            }
-            `}</style>
+          )}
         </div>
-        ) : renderedSections.length > 0 ? (
-          <div className="flex flex-col">
-            {renderedSections.map((section, index) => (
-            <SectionRenderer 
-                key={section.id} 
-                section={section}
-                isLastHero={section.type === "hero" && index === lastHeroIndex}
-            />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon="web"
-            title="No hay secciones publicadas"
-            message="El sitio está siendo configurado"
-          />
-        )}
       </main>
       {!isLogged && <BottomBarPublic />}
     </>

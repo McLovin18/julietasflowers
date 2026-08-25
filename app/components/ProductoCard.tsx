@@ -77,8 +77,8 @@ const cardStyles = `
     top: 10px;
     left: 10px;
     z-index: 10;
-    background: var(--secondary);
-    color: var(--secondaryForeground);
+    background: #FF4757;
+    color: #ffffff;
     font-family: 'Barlow', sans-serif;
     font-size: 10px;
     font-weight: 700;
@@ -146,7 +146,7 @@ const cardStyles = `
 
   /* ── barra info inferior — estilo imagen: negro total ── */
   .pc-info {
-    background: var(--primary);
+    background: #000000;
     color: var(--primaryForeground);
     padding: 10px 12px 12px;
     display: flex;

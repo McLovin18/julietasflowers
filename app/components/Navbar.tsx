@@ -18,7 +18,7 @@ import { productMatches } from "../lib/search-utils";
 // Paleta de marca — Tienda Virtual
 // ─────────────────────────────────────────────
 const BRAND = {
-  bg: "var(--primary)",
+  bg: "#000000",
   bgSoft: "var(--bgSecondary)",
   gold: "var(--secondary)",
   goldBright: "var(--secondaryHover)",

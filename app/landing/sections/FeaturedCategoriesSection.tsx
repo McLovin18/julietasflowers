@@ -55,14 +55,25 @@ export default function FeaturedCategoriesSection({
   return (
     <section
       style={{
-        ...(bg ? { backgroundColor: bg } : {}),
-        ...(color ? { color } : {}),
+        position: "relative",
+        ...(bg ? { backgroundColor: bg } : { background: "var(--bg)" }),
         paddingTop,
         paddingBottom,
       }}
       className="px-4 lg:px-6 m-0"
     >
-      <div className="max-w-6xl mx-auto text-[var(--text)] relative">
+      {/* Textura sutil de fondo — igual que en el resto del sitio */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle at 10% 10%, #e0c9a0 0%, transparent 10%), radial-gradient(circle at 10% 10%, #d4b896 0%, transparent 20%)",
+          opacity: 0.20,
+          zIndex: 0,
+        }}
+      />
+
+      <div className="max-w-6xl mx-auto text-[var(--text)] relative" style={{ zIndex: 1 }}>
         {title && (
           <h2
             className="section-title py-2 text-center"
@@ -113,8 +124,8 @@ export default function FeaturedCategoriesSection({
                     <div className="absolute bottom-0 inset-x-0 px-4 pb-4 sm:px-6 sm:pb-6 z-10">
                       {cat.title && (
                         <h3
-                          className="uppercase font-black leading-[0.95] text-2xl sm:text-4xl md:text-5xl"
-                          style={fieldStyles?.itemTitle}
+                          className="uppercase font-medium leading-[0.95] text-2xl sm:text-4xl md:text-5xl"
+                          style={{ fontFamily: 'system-ui, -apple-system, sans-serif', ...fieldStyles?.itemTitle }}
                         >
                           {lead && (
                             <span className="block text-white drop-shadow-lg">
