@@ -117,16 +117,20 @@ function buildProformaHTML(orden: any): string {
     .map((p: any) => {
       const { basePrice, discount, hasDiscount, fakeOldPrice, finalPrice } = getSnapshotPricing(p);
       const subtotal = finalPrice * (p.cantidad || 1);
+      const imagen = p.imagen || p.imagenes?.[0] || "";
       return `
         <tr>
-          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb;">${p.nombre}</td>
-          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center;">${p.cantidad}</td>
-          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:right;">
+          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; vertical-align:top;">
+            ${imagen ? `<img src="${imagen}" alt="${p.nombre || 'Producto'}" style="width:60px;height:60px;object-fit:contain;border-radius:4px;border:1px solid #e5e7eb;">` : '<div style="width:60px;height:60px;background:#f3f4f6;border-radius:4px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;">Sin imagen</div>'}
+          </td>
+          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; vertical-align:top;">${p.nombre}</td>
+          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:center; vertical-align:top;">${p.cantidad}</td>
+          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:right; vertical-align:top;">
             ${hasDiscount ? `<span style="text-decoration:line-through;color:#9ca3af;font-size:12px;">$${fakeOldPrice?.toFixed(2)}</span><br/>` : ""}
             $${finalPrice.toFixed(2)}
             ${hasDiscount ? `<span style="background:#fee2e2;color:#dc2626;border-radius:4px;padding:1px 5px;font-size:11px;margin-left:4px;">-${discount}%</span>` : ""}
           </td>
-          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:right; font-weight:bold;">$${subtotal.toFixed(2)}</td>
+          <td style="padding:10px 8px; border-bottom:1px solid #e5e7eb; text-align:right; font-weight:bold; vertical-align:top;color:#FACC15;">$${subtotal.toFixed(2)}</td>
         </tr>
       `;
     })
@@ -142,9 +146,9 @@ function buildProformaHTML(orden: any): string {
       <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08);max-width:98vw;">
         <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#3a1859,#6d28d9);padding:32px 36px;">
-            <h1 style="margin:0;color:#fff;font-size:28px;letter-spacing:1px;">TecnoThings</h1>
-            <p style="margin:6px 0 0;color:#e9d5ff;font-size:14px;">Proforma de Orden</p>
+          <td style="background:#000000;padding:32px 36px;">
+            <h1 style="margin:0;color:#ffffff;font-size:28px;letter-spacing:1px;">TecnoThings</h1>
+            <p style="margin:6px 0 0;color:#FACC15;font-size:14px;">Proforma de Orden</p>
           </td>
         </tr>
         <!-- Order ID -->
@@ -154,7 +158,7 @@ function buildProformaHTML(orden: any): string {
               <tr>
                 <td>
                   <p style="margin:0;font-size:13px;color:#6b7280;">Número de orden</p>
-                  <p style="margin:4px 0 0;font-size:22px;font-weight:bold;color:#3a1859;">${orden.orderId}</p>
+                  <p style="margin:4px 0 0;font-size:22px;font-weight:bold;color:#FACC15;">${orden.orderId}</p>
                 </td>
                 <td align="right">
                   <p style="margin:0;font-size:13px;color:#6b7280;">Fecha de visita</p>
@@ -172,6 +176,7 @@ function buildProformaHTML(orden: any): string {
             <table width="100%" cellpadding="0" cellspacing="0">
               <thead>
                 <tr style="background:#f9fafb;">
+                  <th style="padding:10px 8px;text-align:left;font-size:13px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;width:80px;">Imagen</th>
                   <th style="padding:10px 8px;text-align:left;font-size:13px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;">Producto</th>
                   <th style="padding:10px 8px;text-align:center;font-size:13px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;">Cant.</th>
                   <th style="padding:10px 8px;text-align:right;font-size:13px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;">Precio unit.</th>
@@ -191,8 +196,8 @@ function buildProformaHTML(orden: any): string {
                 <td style="padding:8px 8px;text-align:right;font-size:13px;color:#16a34a;font-weight:600;width:110px;">Gratis</td>
               </tr>
               <tr style="background:#f5f3ff;border-radius:8px;">
-                <td style="padding:12px 8px;text-align:right;font-size:17px;font-weight:bold;color:#3a1859;">Total</td>
-                <td style="padding:12px 8px;text-align:right;font-size:20px;font-weight:bold;color:#6d28d9;width:110px;">$${Number(orden.total).toFixed(2)}</td>
+                <td style="padding:12px 8px;text-align:right;font-size:17px;font-weight:bold;color:#000000;">Total</td>
+                <td style="padding:12px 8px;text-align:right;font-size:20px;font-weight:bold;color:#FACC15;width:110px;">$${Number(orden.total).toFixed(2)}</td>
               </tr>
             </table>
           </td>
@@ -205,7 +210,7 @@ function buildProformaHTML(orden: any): string {
                 <strong>¿Qué sigue?</strong> Visita nuestro local el <strong>${orden.visitaFecha}</strong> a las <strong>${orden.visitaHora}</strong> para retirar tus productos. Presenta este número de orden: <strong>${orden.orderId}</strong>
               </p>
               <p style="margin:10px 0 0;font-size:13px;color:#92400e;">
-                Para más opciones y seguimiento de pedidos, <a href="${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/login" style="color:#6d28d9;font-weight:bold;">regístrate en TecnoThings</a>.
+                Para más opciones y seguimiento de pedidos, <a href="${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/login" style="color:#FACC15;font-weight:bold;">regístrate en TecnoThings</a>.
               </p>
             </div>
           </td>

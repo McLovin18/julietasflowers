@@ -21,12 +21,12 @@ function buildOrderEmailHTML(orden: any): string {
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:white;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
     <tr>
       <td>
-        <!-- Header con gradiente púrpura -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);border-radius:12px 12px 0 0;">
+        <!-- Header con fondo negro -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#000000;border-radius:12px 12px 0 0;">
           <tr>
-            <td style="padding:32px;text-align:center;color:white;">
-              <h1 style="margin:0 0 8px;font-size:28px;font-weight:bold;">🛍️ TecnoThings</h1>
-              <p style="margin:0;font-size:14px;opacity:0.9;">Tu orden ha sido recibida</p>
+            <td style="padding:32px;text-align:center;color:#ffffff;">
+              <h1 style="margin:0 0 8px;font-size:28px;font-weight:bold;color:#ffffff;">🛍️ TecnoThings</h1>
+              <p style="margin:0;font-size:14px;opacity:0.9;color:#FACC15;">Tu orden ha sido recibida</p>
             </td>
           </tr>
         </table>
@@ -35,9 +35,9 @@ function buildOrderEmailHTML(orden: any): string {
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td style="padding:24px 36px;">
-              <div style="background:#f0f9ff;border-left:4px solid #6d28d9;padding:16px;border-radius:4px;">
+              <div style="background:#f0f9ff;border-left:4px solid #FACC15;padding:16px;border-radius:4px;">
                 <p style="margin:0 0 4px;font-size:12px;color:#666;text-transform:uppercase;letter-spacing:0.5px;font-weight:bold;">Número de orden</p>
-                <p style="margin:0;font-size:24px;font-weight:bold;color:#6d28d9;">${orden.orderId || "N/A"}</p>
+                <p style="margin:0;font-size:24px;font-weight:bold;color:#FACC15;">${orden.orderId || "N/A"}</p>
                 <p style="margin:8px 0 0;font-size:13px;color:#666;">Fecha: ${orden.createdAt ? new Date(orden.createdAt).toLocaleDateString("es-ES") : "N/A"}</p>
               </div>
             </td>
@@ -52,6 +52,7 @@ function buildOrderEmailHTML(orden: any): string {
               <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                 <thead>
                   <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;">
+                    <th style="padding:12px 8px;text-align:left;font-size:13px;font-weight:bold;color:#374151;width:80px;">Imagen</th>
                     <th style="padding:12px 8px;text-align:left;font-size:13px;font-weight:bold;color:#374151;">Producto</th>
                     <th style="padding:12px 8px;text-align:center;font-size:13px;font-weight:bold;color:#374151;width:60px;">Cant.</th>
                     <th style="padding:12px 8px;text-align:right;font-size:13px;font-weight:bold;color:#374151;width:100px;">Precio</th>
@@ -65,19 +66,23 @@ function buildOrderEmailHTML(orden: any): string {
                           const { finalPrice: precioUnit, discount: descuento, hasDiscount: hasDescuento, fakeOldPrice } = getSnapshotPricing(p);
                           const cantidad = Number(p.cantidad || 1);
                           const subtotal = precioUnit * cantidad;
+                          const imagen = p.imagen || p.imagenes?.[0] || "";
                           return `
                     <tr style="border-bottom:1px solid #e5e7eb;">
-                      <td style="padding:12px 8px;font-size:13px;color:#374151;">
-                        <strong>${p.nombre || "Producto"}</strong>
-                        ${hasDescuento ? `<br><span style="font-size:11px;color:#dc2626;">-${Math.round(descuento)}%</span>` : ""}
+                      <td style="padding:12px 8px;text-align:center;vertical-align:top;">
+                        ${imagen ? `<img src="${imagen}" alt="${p.nombre || 'Producto'}" style="width:60px;height:60px;object-fit:contain;border-radius:4px;border:1px solid #e5e7eb;">` : '<div style="width:60px;height:60px;background:#f3f4f6;border-radius:4px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;">Sin imagen</div>'}
                       </td>
-                      <td style="padding:12px 8px;text-align:center;font-size:13px;color:#374151;">${cantidad}</td>
-                      <td style="padding:12px 8px;text-align:right;font-size:13px;color:#374151;">$${precioUnit.toFixed(2)}</td>
-                      <td style="padding:12px 8px;text-align:right;font-size:13px;font-weight:bold;color:#6d28d9;">$${subtotal.toFixed(2)}</td>
+                      <td style="padding:12px 8px;font-size:13px;color:#ffffff;vertical-align:top;">
+                        <strong>${p.nombre || "Producto"}</strong>
+                        ${hasDescuento ? `<br><span style="font-size:11px;color:#FACC15;">-${Math.round(descuento)}%</span>` : ""}
+                      </td>
+                      <td style="padding:12px 8px;text-align:center;font-size:13px;color:#ffffff;vertical-align:top;">${cantidad}</td>
+                      <td style="padding:12px 8px;text-align:right;font-size:13px;color:#ffffff;vertical-align:top;">$${precioUnit.toFixed(2)}</td>
+                      <td style="padding:12px 8px;text-align:right;font-size:13px;font-weight:bold;color:#FACC15;">$${subtotal.toFixed(2)}</td>
                     </tr>
                   `;
                         })
-                      : "<tr><td colspan=4 style='padding:12px;text-align:center;color:#999;'>No hay productos</td></tr>"
+                      : "<tr><td colspan=5 style='padding:12px;text-align:center;color:#999;'>No hay productos</td></tr>"
                   }
                 </tbody>
               </table>
@@ -98,7 +103,7 @@ function buildOrderEmailHTML(orden: any): string {
                 </div>
                 <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:2px solid #e5e7eb;font-size:16px;font-weight:bold;">
                   <span style="color:#1f2937;">Total:</span>
-                  <span style="color:#6d28d9;">$${(orden.total || 0).toFixed(2)}</span>
+                  <span style="color:#FACC15;">$${(orden.total || 0).toFixed(2)}</span>
                 </div>
               </div>
             </td>
@@ -118,7 +123,7 @@ function buildOrderEmailHTML(orden: any): string {
                   <strong>Presenta:</strong> Este número de orden <strong>${orden.orderId}</strong> o tu documento
                 </p>
                 <p style="margin:12px 0 0;font-size:13px;color:#92400e;">
-                  Para seguimiento: <a href="${process.env.NEXT_PUBLIC_DOMAIN || "https://tecnothings.com"}/home/ordenes" style="color:#6d28d9;font-weight:bold;text-decoration:none;">Ver mis órdenes</a>
+                  Para seguimiento: <a href="${process.env.NEXT_PUBLIC_DOMAIN || "https://tecnothings.com"}/home/ordenes" style="color:#FACC15;font-weight:bold;text-decoration:none;">Ver mis órdenes</a>
                 </p>
               </div>
             </td>
