@@ -334,6 +334,11 @@ function ProductoCard({
     producto?.hasVariations || producto?.isCamiseta || false;
   const variationAttributeIds = producto?.variationAttributeIds || [];
   const stockVariants = producto?.stockVariants || [];
+  const camposPersonalizacion = producto?.camposPersonalizacion || [];
+  const requiereConfiguracion =
+    stockVariants.length > 0 ||
+    (hasVariations && variationAttributeIds.length > 0) ||
+    (producto?.personalizado && camposPersonalizacion.length > 0);
 
   const totalStock = hasVariations
     ? stockVariants.reduce((sum: number, v: any) => sum + (v?.cantidad || 0), 0) || 0
@@ -376,7 +381,7 @@ function ProductoCard({
     e.stopPropagation();
     if (sinStock) return;
 
-    if (hasVariations && variationAttributeIds.length > 0) {
+    if (requiereConfiguracion) {
       showToast("Selecciona las opciones en el detalle del producto", "info");
       router.push(detailUrl);
       return;
