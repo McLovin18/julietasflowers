@@ -1,11 +1,14 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { obtenerBodegas } from "../lib/bodegas-db";
 import { getSnapshotPricing } from "../lib/pricing";
 import { useUser } from "../context/UserContext";
 import BottomBarPublic from "../components/BottomBarPublic";
 import { obtenerAtributos } from "../lib/atributos-db";
 import { obtenerConfiguracionEntrega, obtenerTarifasEntrega, resolverCostoEntrega, TarifaEntrega, ConfiguracionEntrega } from "../lib/entregas-db";
+import { storage } from "../lib/firebase";
+import type { CuentaBancaria } from "../lib/transferencias-db";
 
 function resolveCartItemKey(item: any) {
   if (!item) return "";
@@ -55,6 +58,19 @@ export default function CartPage() {
   const [configuracionEntrega, setConfiguracionEntrega] = useState<ConfiguracionEntrega>({ montoMinimoEntregaGratis: 25 });
   const [ciudadEntrega, setCiudadEntrega] = useState("");
   const [zonaEntrega, setZonaEntrega] = useState("");
+  const [mostrarTransferencia, setMostrarTransferencia] = useState(false);
+  const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancaria[]>([]);
+  const [cuentaSeleccionada, setCuentaSeleccionada] = useState("");
+  const [nombreCliente, setNombreCliente] = useState("");
+  const [telefonoCliente, setTelefonoCliente] = useState("");
+  const [correoCliente, setCorreoCliente] = useState("");
+  const [evidencia, setEvidencia] = useState<File | null>(null);
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [subiendoEvidencia, setSubiendoEvidencia] = useState(false);
+  const [enviandoTransferencia, setEnviandoTransferencia] = useState(false);
+  const [mostrarPaypal, setMostrarPaypal] = useState(false);
+  const [paypalCargando, setPaypalCargando] = useState(false);
+  const [mostrarMetodosPago, setMostrarMetodosPago] = useState(false);
 
   const calcularPrecioData = (p: any) => {
     const { basePrice, discount, hasDiscount, fakeOldPrice, finalPrice } = getSnapshotPricing(p);
@@ -74,6 +90,10 @@ export default function CartPage() {
         setTarifasEntrega(tarifas);
       })
       .catch(() => setError("No se pudo cargar las opciones de entrega."));
+    fetch("/api/transferencias/cuentas")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("accounts")))
+      .then((data) => setCuentasBancarias(Array.isArray(data) ? data : []))
+      .catch(() => setError("No se pudieron cargar las cuentas bancarias."));
   }, []);
 
   const subtotal = carrito.reduce((sum, p) => {
@@ -88,6 +108,54 @@ export default function CartPage() {
     ? resolverCostoEntrega(tarifasEntrega, ciudadEntrega, zonaResolver, subtotal, configuracionEntrega.montoMinimoEntregaGratis)
     : null;
   const total = subtotal + (costoEntrega || 0);
+
+  useEffect(() => {
+    if (!mostrarPaypal || typeof window === "undefined") return;
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+    if (!clientId) return;
+
+    const renderButtons = () => {
+      const paypal = (window as any).paypal;
+      const container = document.getElementById("paypal-buttons");
+      if (!paypal || !container || container.childElementCount > 0) return;
+      paypal.Buttons({
+        style: { layout: "vertical", shape: "rect", label: "pay" },
+        createOrder: async () => {
+          const response = await fetch("/api/paypal/crear-orden", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productos: carrito, deliveryCost: costoEntrega, ciudadEntrega, zonaEntrega }),
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "No se pudo crear el pago.");
+          return result.id;
+        },
+        onApprove: async (data: { orderID: string }) => {
+          setPaypalCargando(true);
+          try {
+            const response = await fetch("/api/paypal/capturar-orden", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paypalOrderId: data.orderID }) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "No se pudo confirmar el pago.");
+            setMostrarPaypal(false);
+            setError(`Pago aprobado. Tu número de orden es ${result.orderId}.`);
+          } catch (paypalError: any) {
+            setError(paypalError.message || "No se pudo confirmar el pago de PayPal.");
+          } finally {
+            setPaypalCargando(false);
+          }
+        },
+        onError: () => setError("PayPal no pudo procesar el pago. Intenta nuevamente."),
+      }).render("#paypal-buttons");
+    };
+    const existingScript = document.getElementById("paypal-sdk");
+    if (existingScript) { renderButtons(); return; }
+    const script = document.createElement("script");
+    script.id = "paypal-sdk";
+    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&intent=capture`;
+    script.onload = renderButtons;
+    script.onerror = () => setError("No se pudo cargar PayPal.");
+    document.body.appendChild(script);
+  }, [mostrarPaypal, carrito, costoEntrega, ciudadEntrega, zonaEntrega]);
 
   // Arma el texto de la variación seleccionada (talla/color legacy o variaciones dinámicas)
   const getVariationText = (p: any): string => {
@@ -157,6 +225,71 @@ export default function CartPage() {
     const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "0967760599";
     const message = await generateWhatsAppMessage();
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
+  };
+
+  const handleEnviarTransferencia = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!ciudadEntrega || !zonaEntrega || costoEntrega === null) {
+      setError("Selecciona primero la ciudad y zona de entrega.");
+      return;
+    }
+    if (!nombreCliente.trim() || !telefonoCliente.trim() || !correoCliente.trim() || !cuentaSeleccionada || !evidenceUrl) {
+      setError("Completa tus datos, selecciona una cuenta y envía la captura de pago.");
+      return;
+    }
+    setEnviandoTransferencia(true);
+    try {
+      const response = await fetch("/api/transferencias/crear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: nombreCliente,
+          customerPhone: telefonoCliente,
+          customerEmail: correoCliente,
+          productos: carrito,
+          ciudadEntrega,
+          zonaEntrega: zonaEntrega === "__ciudad__" ? "Toda la ciudad" : zonaEntrega,
+          subtotal,
+          deliveryCost: costoEntrega,
+          cuentaId: cuentaSeleccionada,
+          evidenceUrl,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No se pudo registrar la transferencia.");
+      setMostrarTransferencia(false);
+      setEvidencia(null);
+      setEvidenceUrl("");
+      setCuentaSeleccionada("");
+      setError(`Transferencia enviada. Tu número de orden es ${result.orderId}.`);
+    } catch (transferError: any) {
+      setError(transferError.message || "No se pudo enviar la transferencia.");
+    } finally {
+      setEnviandoTransferencia(false);
+    }
+  };
+
+  const handleEnviarCaptura = async () => {
+    setError("");
+    if (!evidencia) {
+      setError("Selecciona primero una imagen de la transferencia.");
+      return;
+    }
+    if (!evidencia.type.startsWith("image/") || evidencia.size > 5 * 1024 * 1024) {
+      setError("La evidencia debe ser una imagen de máximo 5 MB.");
+      return;
+    }
+    setSubiendoEvidencia(true);
+    try {
+      const evidenceRef = ref(storage, `transferencias/${Date.now()}-${evidencia.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`);
+      await uploadBytes(evidenceRef, evidencia, { contentType: evidencia.type });
+      setEvidenceUrl(await getDownloadURL(evidenceRef));
+    } catch {
+      setError("No se pudo enviar la captura. Intenta nuevamente.");
+    } finally {
+      setSubiendoEvidencia(false);
+    }
   };
 
   const handleCantidad = (id: string, cantidad: number) => {
@@ -372,15 +505,17 @@ export default function CartPage() {
                   </div>
 
                   <div>
-                    <button
-                      onClick={handleGenerarOrden}
-                      disabled={!ciudadEntrega || !zonaEntrega || costoEntrega === null}
-                      className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-[var(--primary)] hover:bg-[var(--primaryHover)] text-[var(--primaryForeground)] font-extrabold text-sm rounded-xl transition-colors shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Enviar pedido por WhatsApp"
-                    >
-                      <span className="material-icons-round text-base">chat</span>
-                      Pedir por WhatsApp
+                    <button type="button" onClick={() => setMostrarMetodosPago((visible) => !visible)} className={`w-full rounded-2xl border px-4 py-3.5 text-left transition-all ${mostrarMetodosPago ? "border-[var(--primary)] bg-[var(--muted)] shadow-sm" : "border-[var(--border)] bg-[var(--muted)]/40 hover:border-[var(--primary)] hover:bg-[var(--muted)]"}`} aria-expanded={mostrarMetodosPago}>
+                      <span className="flex items-center justify-between gap-3"><span className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary)] text-[var(--primaryForeground)] shadow-sm"><span className="material-icons-round text-xl">payments</span></span><span><span className="block text-sm font-extrabold text-[var(--text)]">Métodos de pago</span><span className="mt-0.5 block text-xs text-[var(--textSecondary)]">Elige cómo quieres completar tu pedido</span></span></span><span className={`material-icons-round text-[var(--textSecondary)] transition-transform ${mostrarMetodosPago ? "rotate-180" : ""}`}>expand_more</span></span>
                     </button>
+                    {mostrarMetodosPago && <div className="mt-3 space-y-2.5 rounded-2xl border border-[var(--border)] bg-[var(--muted)]/30 p-2.5">
+                      <p className="px-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--textSecondary)]">Selecciona una opción</p>
+                      <button onClick={handleGenerarOrden} disabled={!ciudadEntrega || !zonaEntrega || costoEntrega === null} className="group flex w-full items-center gap-3 rounded-xl border border-transparent bg-[var(--primary)] px-3.5 py-3 text-left text-[var(--primaryForeground)] shadow-sm transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45" title="Enviar pedido por WhatsApp"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-black/10"><span className="material-icons-round text-lg">chat</span></span><span className="min-w-0 flex-1"><span className="block text-sm font-extrabold">Pedir por WhatsApp</span><span className="block text-[11px] opacity-75">Confirma disponibilidad directamente</span></span><span className="material-icons-round text-base opacity-70">arrow_forward</span></button>
+                      <button onClick={() => setMostrarPaypal(true)} disabled={!ciudadEntrega || !zonaEntrega || costoEntrega === null || !process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID} className="flex w-full items-center gap-3 rounded-xl border border-[#e4ad19] bg-[#ffc439] px-3.5 py-3 text-left text-[#111827] shadow-sm transition-all hover:bg-[#f2b900] disabled:cursor-not-allowed disabled:opacity-45"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/45"><span className="material-icons-round text-lg">account_balance_wallet</span></span><span className="min-w-0 flex-1"><span className="block text-sm font-extrabold">Pagar con PayPal</span><span className="block text-[11px] opacity-70">Pago seguro en línea</span></span><span className="material-icons-round text-base opacity-70">arrow_forward</span></button>
+                      <button onClick={() => setMostrarTransferencia(true)} disabled={!ciudadEntrega || !zonaEntrega || costoEntrega === null || cuentasBancarias.length === 0} className="flex w-full items-center gap-3 rounded-xl border border-[var(--primary)]/35 bg-[var(--card)] px-3.5 py-3 text-left text-[var(--text)] shadow-sm transition-all hover:border-[var(--primary)] hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-45"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]"><span className="material-icons-round text-lg">account_balance</span></span><span className="min-w-0 flex-1"><span className="block text-sm font-extrabold">Transferencia bancaria</span><span className="block text-[11px] text-[var(--textSecondary)]">Envía tu comprobante de pago</span></span><span className="material-icons-round text-base text-[var(--textSecondary)]">arrow_forward</span></button>
+                      {(!ciudadEntrega || !zonaEntrega) && <p className="px-2 pt-1 text-[11px] font-semibold text-[var(--textSecondary)]">Completa primero la ciudad y zona de entrega.</p>}
+                      {cuentasBancarias.length === 0 && <p className="px-2 pt-1 text-[11px] font-semibold text-[var(--textSecondary)]">Las transferencias estarán disponibles cuando se configuren las cuentas.</p>}
+                    </div>}
                   </div>
                 </div>
               </div>
@@ -388,6 +523,37 @@ export default function CartPage() {
           )}
         </main>
       </div>
+      {mostrarTransferencia && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
+          <form onSubmit={handleEnviarTransferencia} className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-[var(--card)] p-5 shadow-2xl sm:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div><p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">Pago seguro</p><h2 className="mt-1 text-2xl font-bold text-[var(--text)]">Pagar por transferencia</h2><p className="mt-1 text-sm text-[var(--textSecondary)]">Déjanos tus datos y adjunta la captura para revisar tu pago.</p></div>
+              <button type="button" onClick={() => setMostrarTransferencia(false)} className="text-2xl text-[var(--textSecondary)]" aria-label="Cerrar">×</button>
+            </div>
+            <div className="mt-5 grid gap-3">
+              <label className="text-sm font-semibold text-[var(--text)]">Nombre completo<input required value={nombreCliente} onChange={(event) => setNombreCliente(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 font-normal" /></label>
+              <label className="text-sm font-semibold text-[var(--text)]">Número de teléfono<input required type="tel" value={telefonoCliente} onChange={(event) => setTelefonoCliente(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 font-normal" /></label>
+              <label className="text-sm font-semibold text-[var(--text)]">Correo electrónico<input required type="email" value={correoCliente} onChange={(event) => setCorreoCliente(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 font-normal" /></label>
+            </div>
+            <div className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4"><p className="text-sm font-bold text-[var(--text)]">Elige una cuenta bancaria</p><div className="mt-3 grid gap-2">{cuentasBancarias.map((cuenta) => <button type="button" key={cuenta.id} onClick={() => setCuentaSeleccionada(cuenta.id)} className={`rounded-xl border p-3 text-left transition-colors ${cuentaSeleccionada === cuenta.id ? "border-[var(--primary)] bg-[var(--card)] ring-2 ring-[var(--primary)]/20" : "border-[var(--border)] bg-[var(--card)]"}`}><p className="font-bold text-[var(--text)]">{cuenta.banco}</p><p className="text-xs text-[var(--textSecondary)]">{cuenta.tipoCuenta} · {cuenta.numeroCuenta}</p><p className="text-xs text-[var(--textSecondary)]">Titular: {cuenta.titular}</p></button>)}</div></div>
+            {cuentaSeleccionada && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><p className="font-bold">Información para transferir</p>{(() => { const cuenta = cuentasBancarias.find((item) => item.id === cuentaSeleccionada); return cuenta ? <div className="mt-1 space-y-0.5"><p>{cuenta.banco} · {cuenta.tipoCuenta}</p><p>Cuenta: <strong>{cuenta.numeroCuenta}</strong></p><p>Titular: {cuenta.titular}</p>{cuenta.identificacion && <p>Identificación: {cuenta.identificacion}</p>}</div> : null; })()}</div>}
+            <label className="mt-5 block text-sm font-semibold text-[var(--text)]">Captura de la transferencia<input required={!evidenceUrl} type="file" accept="image/*" onChange={(event) => { setEvidencia(event.target.files?.[0] || null); setEvidenceUrl(""); }} className="mt-1 block w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm font-normal" /><span className="mt-1 block text-xs font-normal text-[var(--textSecondary)]">Imagen JPG, PNG o WEBP. Máximo 5 MB.</span></label>
+            <button type="button" onClick={handleEnviarCaptura} disabled={!evidencia || subiendoEvidencia} className="mt-3 w-full rounded-xl border border-[var(--primary)] px-4 py-3 font-bold text-[var(--primary)] disabled:opacity-50">{subiendoEvidencia ? "Enviando captura..." : evidenceUrl ? "Captura enviada ✓" : "Enviar captura"}</button>
+            {evidenceUrl && <p className="mt-2 text-sm font-semibold text-emerald-700">La captura quedó cargada como evidencia.</p>}
+            <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4"><span className="text-sm text-[var(--textSecondary)]">Total a transferir</span><strong className="text-xl text-[var(--text)]">${total.toFixed(2)}</strong></div>
+            <button type="submit" disabled={enviandoTransferencia || !evidenceUrl} className="mt-4 w-full rounded-xl bg-[var(--primary)] px-4 py-3 font-bold text-[var(--primaryForeground)] disabled:opacity-50">{enviandoTransferencia ? "Enviando transacción..." : "Enviar transacción"}</button>
+          </form>
+        </div>
+      )}
+      {mostrarPaypal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">Pago seguro</p><h2 className="mt-1 text-2xl font-bold text-[var(--text)]">Pagar con PayPal</h2><p className="mt-1 text-sm text-[var(--textSecondary)]">Total: ${total.toFixed(2)} USD</p></div><button type="button" onClick={() => setMostrarPaypal(false)} className="text-2xl text-[var(--textSecondary)]" aria-label="Cerrar">×</button></div>
+            {!process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ? <p className="mt-6 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">PayPal aún no está configurado. Agrega el Client ID para habilitarlo.</p> : <div id="paypal-buttons" className="mt-6" />}
+            {paypalCargando && <p className="mt-3 text-center text-sm text-[var(--textSecondary)]">Confirmando tu pago...</p>}
+          </div>
+        </div>
+      )}
       {!isLogged && <BottomBarPublic />}
     </>
   );

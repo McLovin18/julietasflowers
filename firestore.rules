@@ -89,5 +89,10 @@ service cloud.firestore {
       allow create: if true;
       allow update: if true;
     }
+
+    match /cuentas_bancarias/{cuentaId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

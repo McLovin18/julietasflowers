@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { obtenerTodasOrdenes, actualizarOrden, deducirStockOrden, devolverStockOrden } from "../../lib/ordenes-db";
 import { useUser } from "../../context/UserContext";
 import { auth } from "../../lib/firebase";
@@ -21,9 +21,13 @@ export default function PedidosAdminPage() {
 	const [fechaDesde, setFechaDesde] = useState<string>("");
 	const [fechaHasta, setFechaHasta] = useState<string>("");
 	const [expandedTarjetas, setExpandedTarjetas] = useState(false);
+	const [ordenSeleccionada, setOrdenSeleccionada] = useState<any | null>(null);
+	const cargaOrdenes = useRef(0);
 
 	const loadOrdenes = async () => {
 		setLoading(true);
+		const cargaActual = ++cargaOrdenes.current;
+		let clientesPromise: Promise<Response> | null = null;
 		try {
 			// Obtener token del usuario logueado actualmente
 			const currentUser = auth.currentUser;
@@ -41,11 +45,14 @@ export default function PedidosAdminPage() {
 
 			// Usar endpoint API para obtener órdenes
 			console.log("🔍 Llamando a /api/admin/ordenes");
-			const res = await fetch("/api/admin/ordenes", {
+			const ordenesPromise = fetch("/api/admin/ordenes", {
 				headers: {
 					"Authorization": `Bearer ${token}`,
 				},
+				cache: "no-store",
 			});
+			clientesPromise = fetch("/api/admin/clientes", { cache: "no-store" });
+			const res = await ordenesPromise;
 
 			console.log("🔍 Response status:", res.status);
 			
@@ -57,14 +64,15 @@ export default function PedidosAdminPage() {
 
 			const data = await res.json();
 			console.log("✅ Órdenes recibidas:", data.length, data);
-			setOrdenes(Array.isArray(data) ? data : []);
+			if (cargaActual === cargaOrdenes.current) setOrdenes(Array.isArray(data) ? data : []);
 		} catch (error) {
 			console.error("❌ Error cargando órdenes:", error);
 			setOrdenes([]);
 		}
 
 		try {
-			const clientesRes = await fetch("/api/admin/clientes");
+			if (!clientesPromise) throw new Error("No se inició la consulta de clientes");
+			const clientesRes = await clientesPromise;
 			if (!clientesRes.ok) throw new Error("Error al obtener clientes");
 			
 			const clientesData = await clientesRes.json();
@@ -72,7 +80,7 @@ export default function PedidosAdminPage() {
 			for (const c of (clientesData.clientes || [])) {
 				map[c.uid] = { displayName: c.displayName, email: c.email };
 			}
-			setClientesMap(map);
+			if (cargaActual === cargaOrdenes.current) setClientesMap(map);
 		} catch (error) {
 			console.error("Error cargando clientes:", error);
 		}
@@ -83,6 +91,8 @@ export default function PedidosAdminPage() {
 	useEffect(() => {
 		if (user) {
 			loadOrdenes();
+			const refreshTimer = window.setInterval(loadOrdenes, 15000);
+			return () => window.clearInterval(refreshTimer);
 		}
 	}, [user]);
 
@@ -123,11 +133,26 @@ export default function PedidosAdminPage() {
 	const aprobarOrden = async (orden: any) => {
 		try {
 			setLoading(true);
-
-			// Deducir stock cuando se aprueba y actualizar estado
-			await deducirStockOrden(orden.id);
-			await actualizarOrden(orden.id, { estado: "aprobada" });
+			if (orden.metodoPago !== "transferencia") {
+				await deducirStockOrden(orden.id);
+				await actualizarOrden(orden.id, { estado: "aprobada" });
+				setOrdenes((prev) => prev.map((o) => o.id === orden.id ? { ...o, estado: "aprobada" } : o));
+				await loadOrdenes();
+				alert("✅ Orden aprobada exitosamente");
+				return;
+			}
+			const currentUser = auth.currentUser;
+			if (!currentUser) throw new Error("Sesión de administrador no disponible");
+			const token = await getIdToken(currentUser);
+			const response = await fetch("/api/transferencias/aprobar", {
+				method: "POST",
+				headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+				body: JSON.stringify({ orderId: orden.id }),
+			});
+			const result = await response.json();
+			if (!response.ok) throw new Error(result.error || "No se pudo aprobar la orden");
 			setOrdenes((prev) => prev.map((o) => o.id === orden.id ? { ...o, estado: "aprobada" } : o));
+			await loadOrdenes();
 			alert("✅ Orden aprobada exitosamente");
 		} catch (error: any) {
 			console.error("Error al aprobar orden:", error);
@@ -145,13 +170,16 @@ export default function PedidosAdminPage() {
 			setLoading(true);
 			
 			// Usar endpoint genérico de rechazo
-			const endpoint = "/api/admin/reject-order";
+			const currentUser = auth.currentUser;
+			if (!currentUser) throw new Error("Sesión de administrador no disponible");
+			const token = await getIdToken(currentUser);
+			const endpoint = orden.metodoPago === "transferencia" ? "/api/transferencias/rechazar" : "/api/admin/reject-order";
 			
 			const res = await fetch(endpoint, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					"x-admin-token": process.env.NEXT_PUBLIC_ADMIN_TOKEN || "",
+					...(orden.metodoPago === "transferencia" ? { Authorization: `Bearer ${token}` } : { "x-admin-token": process.env.NEXT_PUBLIC_ADMIN_TOKEN || "" }),
 				},
 				body: JSON.stringify({
 					orderId: orden.id,
@@ -217,7 +245,7 @@ export default function PedidosAdminPage() {
 	};
 
 	const ordenesPendientes = ordenes.filter((o) =>
-		(o.estado === "generada" || o.estado === "pendiente_pago" || o.estado === "pago_fallido") &&
+		(o.estado === "generada" || o.estado === "pendiente_pago" || o.estado === "pago_fallido" || o.estado === "transferencia_pendiente") &&
 		estaEnRango(o.visitaFecha) &&
 		matchesBusqueda(o)
 	);
@@ -237,6 +265,7 @@ export default function PedidosAdminPage() {
 			generada:       { label: "✔ Generada",        className: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300" },
 			aprobada:       { label: "✅ Aprobada",        className: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300" },
 			pendiente_pago: { label: "⏳ Pago pendiente",  className: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300" },
+			transferencia_pendiente: { label: "🏦 Transferencia pendiente", className: "bg-amber-100 text-amber-700" },
 			pago_fallido:   { label: "❌ Pago fallido",    className: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300" },
 			rechazada:      { label: "🚫 Rechazada",       className: "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300" },
 		};
@@ -283,125 +312,35 @@ export default function PedidosAdminPage() {
 					<span className="font-bold text-lg text-slate-800 dark:text-slate-100">
 						{orden.orderId || `#${orden.id.slice(-6)}`}
 					</span>
+					{orden.metodoPago === "transferencia" && <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-700">Transferencia</span>}
 					{/* payment method badge removed (Stripe not used) */}
 				</div>
 				{estadoBadge(orden.estado)}
 			</div>
 
-			{/* Info */}
-			<div className="space-y-1 mb-3 text-sm text-slate-600 dark:text-slate-300">
-				<div>
-					{clienteBadge(orden)}
-				</div>
-				<div className="text-xs text-slate-400 dark:text-slate-500">
-					Creada: {orden.createdAt?.toDate
-						? orden.createdAt.toDate().toLocaleString()
-						: (orden.createdAt ? String(orden.createdAt) : "—")}
-				</div>
-				{orden.visitaFecha && (
-					<div className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-						📅 Visita: <span className="font-semibold">{orden.visitaFecha}</span>
-						{orden.visitaHora && <span>{orden.visitaHora}</span>}
-					</div>
-				)}
-			</div>
-
-			{/* Productos */}
 			<ul className="border-t border-slate-100 dark:border-slate-700 pt-3 mb-3 space-y-2">
 				{(orden.productos || []).map((p: any, idx: number) => (
-					<li key={idx} className="space-y-1">
+					<li key={idx} className="flex justify-between text-sm">
 						<div className="flex justify-between text-sm">
 							<span className="text-slate-700 dark:text-slate-300">
 								{p.nombre} <span className="text-slate-400">×{p.cantidad}</span>
 							</span>
-							<span className="font-medium text-slate-800 dark:text-slate-100">
-								${calcularSubtotalProducto(p).toFixed(2)}
-							</span>
 						</div>
-						{/* Mostrar variantes si existen */}
-						{p.selectedVariations && Object.keys(p.selectedVariations).length > 0 && (
-							<div className="bg-slate-100 dark:bg-slate-900/20 rounded px-2 py-1.5 border-l-2 border-slate-400 text-xs space-y-0.5">
-								<p className="font-semibold text-slate-700 dark:text-slate-300">📦 Variantes:</p>
-								{/* Si tenemos los nombres, mostrarlos */}
-								{p.selectedVariationsConNombres && Object.entries(p.selectedVariationsConNombres).map(([attrId, attrData]: [string, any]) => (
-									<p key={attrId} className="text-slate-600 dark:text-slate-400">
-										• <span className="font-semibold">{attrData.nombre}:</span> {attrData.valor}
-									</p>
-								))}
-								{/* Fallback si no tenemos los nombres */}
-								{!p.selectedVariationsConNombres && Object.entries(p.selectedVariations).map(([attrId, value]: [string, any]) => (
-									<p key={attrId} className="text-slate-600 dark:text-slate-400">
-										• {attrId}: {value}
-									</p>
-								))}
-							</div>
-						)}
-						{/* Mostrar personalización si existe */}
-						{p.personalizacionValues && Object.keys(p.personalizacionValues).length > 0 && (
-							<div className="bg-purple-50 dark:bg-purple-900/20 rounded px-2 py-1.5 border-l-2 border-purple-400 text-xs space-y-0.5">
-								<p className="font-semibold text-purple-700 dark:text-purple-300">📝 Personalización:</p>
-								{/* Si tenemos los nombres, mostrarlos */}
-								{p.personalizacionValuesConNombres && Object.entries(p.personalizacionValuesConNombres).map(([fieldId, fieldData]: [string, any]) => (
-									<p key={fieldId} className="text-purple-600 dark:text-purple-300">
-										• <span className="font-semibold">{fieldData.nombre}:</span> {fieldData.valor}
-									</p>
-								))}
-								{/* Fallback si no tenemos los nombres */}
-								{!p.personalizacionValuesConNombres && Object.entries(p.personalizacionValues).map(([fieldId, value]: [string, any]) => (
-									<p key={fieldId} className="text-purple-600 dark:text-purple-300">
-										• {value}
-									</p>
-								))}
-							</div>
-						)}
+						<span className="font-medium text-slate-800 dark:text-slate-100">${calcularSubtotalProducto(p).toFixed(2)}</span>
 					</li>
 				))}
 			</ul>
-
-			{/* Delivery Time Summary */}
-			<div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 py-2 mb-3 border border-blue-100 dark:border-blue-900/40 space-y-1">
-				{obtenerResumenTiempos(orden.productos).map((tiempo) => (
-					<div key={tiempo} className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300">
-						<span>⏱️</span>
-						<span>Entrega: máximo {tiempo}h</span>
-					</div>
-				))}
-			</div>
-
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between gap-3">
 				<div className="font-bold text-base text-slate-800 dark:text-slate-100">
 					Total: <span className="text-purple-700 dark:text-purple-300">${calcularTotalOrden(orden).toFixed(2)}</span>
 				</div>
-
-				{/* Acciones - Mostrar botones si NO está ya aprobada/rechazada */}
-				{orden.estado !== "aprobada" && orden.estado !== "rechazada" && (
-					<div className="flex gap-2">
-						<button
-							onClick={() => rechazarOrden(orden)}
-							className="px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 text-sm font-medium transition-colors"
-						>
-							🚫 Rechazar
-						</button>
-
-						<button
-							onClick={() => aprobarOrden(orden)}
-							className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors flex items-center gap-2"
-						>
-							<span>✅ Aprobar</span>
-						</button>
-					</div>
-				)}
+				<button onClick={() => setOrdenSeleccionada(orden)} className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-bold text-white hover:bg-slate-700">Ver información</button>
 			</div>
-
-			{orden.motivoRechazo && orden.estado === "rechazada" && (
-				<div className="mt-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg border border-red-100 dark:border-red-900/40">
-					Motivo rechazo: {orden.motivoRechazo}
-				</div>
-			)}
 		</div>
 	);
 
 	return (
+		<>
 		<div className="max-w-3xl mx-auto px-4 py-8">
 			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Pedidos</h1>
@@ -518,6 +457,35 @@ export default function PedidosAdminPage() {
 				</div>
 			)}
 		</div>
+		{ordenSeleccionada && (
+			<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Información de la orden">
+				<div className="flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-800">
+					<div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+						<div>
+							<div className="flex flex-wrap items-center gap-2">
+								<h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{ordenSeleccionada.orderId || `#${ordenSeleccionada.id.slice(-6)}`}</h2>
+								{estadoBadge(ordenSeleccionada.estado)}
+							</div>
+							<p className="mt-1 text-sm text-slate-500">Información completa de la orden</p>
+						</div>
+						<button onClick={() => setOrdenSeleccionada(null)} className="text-2xl leading-none text-slate-400 hover:text-slate-900 dark:hover:text-white" aria-label="Cerrar">×</button>
+					</div>
+					<div className="overflow-y-auto p-5">
+						<div className="grid gap-3 sm:grid-cols-2">
+							<div className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900/40"><p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Cliente</p><p className="font-semibold text-slate-800 dark:text-slate-100">{ordenSeleccionada.customerName || clienteBadge(ordenSeleccionada)}</p>{ordenSeleccionada.customerPhone && <p className="text-slate-600 dark:text-slate-300">{ordenSeleccionada.customerPhone}</p>}{ordenSeleccionada.customerEmail && <p className="text-slate-600 dark:text-slate-300">{ordenSeleccionada.customerEmail}</p>}</div>
+							<div className="rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900/40"><p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-400">Entrega</p><p className="font-semibold text-slate-800 dark:text-slate-100">{ordenSeleccionada.ciudadEntrega && ordenSeleccionada.zonaEntrega ? `${ordenSeleccionada.ciudadEntrega} · ${ordenSeleccionada.zonaEntrega}` : "No especificada"}</p>{ordenSeleccionada.visitaFecha && <p className="text-slate-600 dark:text-slate-300">📅 {ordenSeleccionada.visitaFecha} {ordenSeleccionada.visitaHora || ""}</p>}</div>
+						</div>
+						{ordenSeleccionada.metodoPago === "transferencia" && <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="mb-2 font-bold">Datos de transferencia</p><p><strong>Banco:</strong> {ordenSeleccionada.cuentaBancaria?.banco}</p><p><strong>Cuenta:</strong> {ordenSeleccionada.cuentaBancaria?.numeroCuenta}</p><p><strong>Titular:</strong> {ordenSeleccionada.cuentaBancaria?.titular}</p><p><strong>Notificación:</strong> {ordenSeleccionada.notificacionCorreo || "pendiente"}</p></div>}
+						<section className="mt-5"><h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Productos</h3><div className="space-y-3">{(ordenSeleccionada.productos || []).map((p: any, idx: number) => <div key={idx} className="rounded-xl border border-slate-200 p-3 dark:border-slate-700"><div className="flex justify-between gap-3 text-sm"><span className="font-semibold text-slate-800 dark:text-slate-100">{p.nombre} <span className="font-normal text-slate-400">×{p.cantidad}</span></span><span className="font-bold text-slate-900 dark:text-slate-100">${calcularSubtotalProducto(p).toFixed(2)}</span></div>{p.selectedVariations && Object.keys(p.selectedVariations).length > 0 && <div className="mt-2 rounded-lg bg-slate-50 p-2 text-xs dark:bg-slate-900/40"><p className="font-bold">📦 Variantes</p>{Object.entries(p.selectedVariationsConNombres || p.selectedVariations).map(([key, value]: [string, any]) => <p key={key}>• {typeof value === "object" ? `${value.nombre}: ${value.valor}` : `${key}: ${value}`}</p>)}</div>}{p.personalizacionValues && Object.keys(p.personalizacionValues).length > 0 && <div className="mt-2 rounded-lg bg-purple-50 p-2 text-xs text-purple-800 dark:bg-purple-900/20 dark:text-purple-200"><p className="font-bold">📝 Personalización</p>{Object.entries(p.personalizacionValuesConNombres || p.personalizacionValues).map(([key, value]: [string, any]) => <p key={key}>• {typeof value === "object" ? `${value.nombre}: ${value.valor}` : String(value)}</p>)}</div>}</div>)}</div></section>
+						<div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 dark:border-slate-700"><span className="font-bold text-slate-700 dark:text-slate-200">Total</span><span className="text-xl font-bold text-purple-700 dark:text-purple-300">${calcularTotalOrden(ordenSeleccionada).toFixed(2)}</span></div>
+						{ordenSeleccionada.estado !== "aprobada" && ordenSeleccionada.estado !== "rechazada" && <div className="mt-4 flex flex-wrap justify-end gap-2"><button onClick={() => { setOrdenSeleccionada(null); rechazarOrden(ordenSeleccionada); }} className="rounded-lg border border-red-300 px-3 py-2 text-sm font-bold text-red-600">🚫 Rechazar</button><button onClick={() => { setOrdenSeleccionada(null); aprobarOrden(ordenSeleccionada); }} className="rounded-lg bg-green-600 px-3 py-2 text-sm font-bold text-white">✅ Aprobar</button></div>}
+						{ordenSeleccionada.motivoRechazo && <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">Motivo de rechazo: {ordenSeleccionada.motivoRechazo}</div>}
+						{ordenSeleccionada.evidenceUrl && <section className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700"><h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">Evidencia de pago</h3><img src={ordenSeleccionada.evidenceUrl} alt="Captura de transferencia" className="mx-auto max-h-64 max-w-full rounded-xl border border-slate-200 object-contain dark:border-slate-700" /></section>}
+					</div>
+				</div>
+			</div>
+		)}
+		</>
 	);
 }
 
