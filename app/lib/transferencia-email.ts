@@ -71,3 +71,50 @@ export async function notificarCompraAprobada(orderId: string): Promise<void> {
 
   throw new Error(firstResult.error.message);
 }
+
+export async function notificarCompraPaypal(orderId: string): Promise<void> {
+  if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY no configurado.");
+  const ownerEmail = process.env.TRANSFER_OWNER_EMAIL || process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL;
+  if (!ownerEmail) throw new Error("No hay correo del dueño configurado.");
+
+  const db = admin.firestore();
+  const orderRef = db.collection("ordenes").doc(orderId);
+  const snapshot = await orderRef.get();
+  if (!snapshot.exists) throw new Error("Orden no encontrada");
+  const order = { id: orderId, ...snapshot.data() } as any;
+  const customerEmail = order.customerEmail || order.email;
+  const testEmail = process.env.RESEND_TEST_EMAIL;
+  const products = (order.productos || []).map((item: any) => `<li>${escapeHtml(item.nombre)} x${item.cantidad} - $${Number(item.subtotal || 0).toFixed(2)}</li>`).join("");
+  const details = `<p><b>Orden:</b> ${escapeHtml(order.orderId)}</p><p><b>Total:</b> $${Number(order.total || 0).toFixed(2)}</p><p><b>Entrega:</b> ${escapeHtml(order.ciudadEntrega)} - ${escapeHtml(order.zonaEntrega)}</p><h2>Productos</h2><ul>${products}</ul>`;
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const from = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+
+  const errors: string[] = [];
+  const ownerResult = await resend.emails.send({
+    from,
+    to: ownerEmail,
+    subject: `Nueva compra con PayPal ${order.orderId}`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto"><h1>Compra confirmada por PayPal</h1><p>Un cliente completó el pago con PayPal.</p><p><b>Correo PayPal:</b> ${escapeHtml(customerEmail || "No disponible")}</p>${details}</div>`,
+    replyTo: customerEmail || ownerEmail,
+  });
+  if (ownerResult.error) errors.push(`dueño: ${ownerResult.error.message}`);
+
+  if (customerEmail) {
+    const customerMessage = {
+      from,
+      subject: `Compra confirmada ${order.orderId}`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto"><h1>¡Gracias por tu compra!</h1><p>PayPal confirmó tu pago. Tu pedido fue registrado correctamente y será preparado para entrega.</p>${details}<p>Conserva este número de orden: <b>${escapeHtml(order.orderId)}</b>.</p></div>`,
+      replyTo: ownerEmail,
+    };
+    const customerResult = await resend.emails.send({ ...customerMessage, to: customerEmail });
+    if (customerResult.error && process.env.RESEND_TEST_MODE === "true" && testEmail && testEmail !== customerEmail) {
+      const fallbackResult = await resend.emails.send({ ...customerMessage, to: testEmail });
+      if (fallbackResult.error) errors.push(`cliente: ${customerResult.error.message}`);
+      else await orderRef.update({ notificacionClientePaypal: "enviada_fallback_prueba" });
+    } else if (customerResult.error) {
+      errors.push(`cliente: ${customerResult.error.message}`);
+    }
+  }
+  if (errors.length > 0) throw new Error(errors.join(" | "));
+  await orderRef.update({ notificacionPaypal: "enviada", notificacionPaypalEn: admin.firestore.Timestamp.now() });
+}

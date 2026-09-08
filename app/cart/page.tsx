@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { obtenerBodegas } from "../lib/bodegas-db";
 import { getSnapshotPricing } from "../lib/pricing";
@@ -47,6 +47,95 @@ function resolveAvailableStock(item: any) {
   return Number(item.variantStock ?? item.stock ?? 0);
 }
 
+// --- Dropdown custom (reemplaza <select> nativo para controlar 100% el estilo y el ancho) ---
+type DropdownOption = { value: string; label: string };
+
+function Dropdown({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: DropdownOption[];
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
+  const selectedLabel = options.find((option) => option.value === value)?.label || placeholder;
+
+  return (
+    <div ref={containerRef} className="relative w-full min-w-0 max-w-full">
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((prev) => !prev)}
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`flex h-11 w-full max-w-full items-center justify-between gap-2 rounded-xl border bg-[var(--card)] px-3 text-sm font-semibold text-[var(--text)] outline-none transition-colors ${
+          open ? "border-[var(--primary)]" : "border-[var(--border)]"
+        } disabled:cursor-not-allowed disabled:opacity-50`}
+      >
+        <span className={`min-w-0 flex-1 truncate text-left ${!value ? "text-[var(--textSecondary)] font-normal" : ""}`}>
+          {selectedLabel}
+        </span>
+        <span className={`material-icons-round shrink-0 text-lg text-[var(--textSecondary)] transition-transform ${open ? "rotate-180" : ""}`}>
+          expand_more
+        </span>
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-56 w-full max-w-full overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-lg"
+        >
+          {options.length === 0 ? (
+            <div className="px-3.5 py-3 text-sm text-[var(--textSecondary)]">Sin opciones disponibles</div>
+          ) : (
+            options.map((option) => (
+              <button
+                key={option.value || "__placeholder__"}
+                type="button"
+                role="option"
+                aria-selected={option.value === value}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`block w-full max-w-full truncate px-3.5 py-2.5 text-left text-sm transition-colors ${
+                  option.value === value
+                    ? "bg-[var(--primary)] text-[var(--primaryForeground)] font-semibold"
+                    : "text-[var(--text)] hover:bg-[var(--muted)]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Pagina principal del carrito
 export default function CartPage() {
   const { carrito: carritoRaw, removeCarrito, addCarrito } = useUser();
@@ -70,6 +159,8 @@ export default function CartPage() {
   const [enviandoTransferencia, setEnviandoTransferencia] = useState(false);
   const [mostrarPaypal, setMostrarPaypal] = useState(false);
   const [paypalCargando, setPaypalCargando] = useState(false);
+  const [paypalProcesando, setPaypalProcesando] = useState(false);
+  const [paypalPreparando, setPaypalPreparando] = useState(false);
   const [mostrarMetodosPago, setMostrarMetodosPago] = useState(false);
 
   const calcularPrecioData = (p: any) => {
@@ -103,23 +194,39 @@ export default function CartPage() {
 
   const ciudadesEntrega = [...new Set(tarifasEntrega.map((tarifa) => tarifa.ciudad))].sort((a, b) => a.localeCompare(b));
   const zonasEntrega = tarifasEntrega.filter((tarifa) => tarifa.tipo === "zona" && tarifa.ciudad === ciudadEntrega);
+  const hayOpcionTodaLaCiudad = tarifasEntrega.some((tarifa) => tarifa.tipo === "ciudad" && tarifa.ciudad === ciudadEntrega);
   const zonaResolver = zonaEntrega === "__ciudad__" ? "" : zonaEntrega;
   const costoEntrega = ciudadEntrega && zonaEntrega
     ? resolverCostoEntrega(tarifasEntrega, ciudadEntrega, zonaResolver, subtotal, configuracionEntrega.montoMinimoEntregaGratis)
     : null;
   const total = subtotal + (costoEntrega || 0);
 
+  const opcionesCiudad: DropdownOption[] = ciudadesEntrega.map((ciudad) => ({ value: ciudad, label: ciudad }));
+  const opcionesZona: DropdownOption[] = [
+    ...(hayOpcionTodaLaCiudad ? [{ value: "__ciudad__", label: "Toda la ciudad" }] : []),
+    ...zonasEntrega.map((tarifa) => ({ value: tarifa.nombre, label: tarifa.nombre })),
+  ];
+
   useEffect(() => {
     if (!mostrarPaypal || typeof window === "undefined") return;
     const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
     if (!clientId) return;
+    setPaypalPreparando(true);
 
     const renderButtons = () => {
       const paypal = (window as any).paypal;
       const container = document.getElementById("paypal-buttons");
-      if (!paypal || !container || container.childElementCount > 0) return;
+      if (!paypal || !container) return false;
+      if (container.childElementCount > 0) {
+        setPaypalPreparando(false);
+        return true;
+      }
       paypal.Buttons({
         style: { layout: "vertical", shape: "rect", label: "pay" },
+        onClick: () => {
+          setPaypalProcesando(true);
+          window.setTimeout(() => setPaypalProcesando(false), 1800);
+        },
         createOrder: async () => {
           const response = await fetch("/api/paypal/crear-orden", {
             method: "POST",
@@ -142,19 +249,50 @@ export default function CartPage() {
             setError(paypalError.message || "No se pudo confirmar el pago de PayPal.");
           } finally {
             setPaypalCargando(false);
+            setPaypalProcesando(false);
           }
         },
-        onError: () => setError("PayPal no pudo procesar el pago. Intenta nuevamente."),
-      }).render("#paypal-buttons");
+        onCancel: () => {
+          setPaypalProcesando(false);
+          setError("El pago de PayPal fue cancelado. Puedes intentar nuevamente.");
+        },
+        onError: () => {
+          setPaypalProcesando(false);
+          setError("PayPal no pudo abrir el flujo de pago. Revisa el bloqueo de ventanas emergentes o intenta nuevamente.");
+        },
+      }).render("#paypal-buttons").then(() => setPaypalPreparando(false)).catch(() => {
+        setPaypalPreparando(false);
+        setError("No se pudieron cargar las opciones de PayPal.");
+      });
+      return true;
     };
     const existingScript = document.getElementById("paypal-sdk");
-    if (existingScript) { renderButtons(); return; }
-    const script = document.createElement("script");
-    script.id = "paypal-sdk";
-    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&intent=capture`;
-    script.onload = renderButtons;
-    script.onerror = () => setError("No se pudo cargar PayPal.");
-    document.body.appendChild(script);
+    if (existingScript && renderButtons()) return;
+    if (!existingScript) {
+      const script = document.createElement("script");
+      script.id = "paypal-sdk";
+      script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&intent=capture`;
+      script.onload = () => renderButtons();
+      script.onerror = () => {
+        setPaypalPreparando(false);
+        setError("No se pudo cargar PayPal.");
+      };
+      document.body.appendChild(script);
+    }
+    const retryTimer = window.setInterval(() => {
+      if (renderButtons()) window.clearInterval(retryTimer);
+    }, 250);
+    const timeout = window.setTimeout(() => {
+      window.clearInterval(retryTimer);
+      if (paypalPreparando) {
+        setPaypalPreparando(false);
+        setError("PayPal está tardando demasiado en cargar. Intenta nuevamente.");
+      }
+    }, 15000);
+    return () => {
+      window.clearInterval(retryTimer);
+      window.clearTimeout(timeout);
+    };
   }, [mostrarPaypal, carrito, costoEntrega, ciudadEntrega, zonaEntrega]);
 
   // Arma el texto de la variación seleccionada (talla/color legacy o variaciones dinámicas)
@@ -479,19 +617,52 @@ export default function CartPage() {
                         </span>
                         <span>${subtotal.toFixed(2)}</span>
                       </div>
-                      <div className="mt-3 space-y-3 border-t border-[var(--border)] pt-3">
-                        <p className="text-sm font-bold text-[var(--text)]">¿Dónde entregamos tu pedido?</p>
-                        <select value={ciudadEntrega} onChange={(event) => { setCiudadEntrega(event.target.value); setZonaEntrega(""); }} className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-sm text-[var(--text)] outline-none focus:border-[var(--primary)]">
-                          <option value="">Elige una ciudad</option>
-                          {ciudadesEntrega.map((ciudad) => <option key={ciudad} value={ciudad}>{ciudad}</option>)}
-                        </select>
-                        <select value={zonaEntrega} onChange={(event) => setZonaEntrega(event.target.value)} disabled={!ciudadEntrega} className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 text-sm text-[var(--text)] outline-none focus:border-[var(--primary)] disabled:opacity-50">
-                          <option value="">Elige una zona</option>
-                          {tarifasEntrega.some((tarifa) => tarifa.tipo === "ciudad" && tarifa.ciudad === ciudadEntrega) && <option value="__ciudad__">Toda la ciudad</option>}
-                          {zonasEntrega.map((tarifa) => <option key={tarifa.id} value={tarifa.nombre}>{tarifa.nombre}</option>)}
-                        </select>
-                        {ciudadEntrega && zonaEntrega && costoEntrega !== null && <p className="text-xs font-semibold text-[var(--textSecondary)]">Envío: {costoEntrega === 0 ? "Gratis por alcanzar el monto mínimo" : `$${costoEntrega.toFixed(2)}`}</p>}
+
+                      {/* Selector de ciudad y zona de entrega — dropdown custom, no <select> nativo */}
+                      <div className="mt-3 w-full max-w-full overflow-visible rounded-2xl border border-[var(--border)] bg-[var(--muted)]/40 p-3.5 sm:p-4">
+                        <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-[var(--text)]">¿Dónde entregamos tu pedido?</p>
+                            <p className="mt-0.5 text-[11px] text-[var(--textSecondary)]">Selecciona ciudad y zona para calcular el envío</p>
+                          </div>
+                          <span className="material-icons-round shrink-0 rounded-lg bg-[var(--primary)]/10 p-1.5 text-base text-[var(--primary)]">location_on</span>
+                        </div>
+
+                        <div className="grid w-full max-w-full grid-cols-1 gap-2.5 md:grid-cols-2">
+                          <div className="w-full min-w-0 max-w-full">
+                            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--textSecondary)]">
+                              Ciudad
+                            </label>
+                            <Dropdown
+                              value={ciudadEntrega}
+                              onChange={(value) => { setCiudadEntrega(value); setZonaEntrega(""); }}
+                              options={opcionesCiudad}
+                              placeholder="Elige una ciudad"
+                            />
+                          </div>
+
+                          <div className="w-full min-w-0 max-w-full">
+                            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--textSecondary)]">
+                              Zona
+                            </label>
+                            <Dropdown
+                              value={zonaEntrega}
+                              onChange={setZonaEntrega}
+                              options={opcionesZona}
+                              placeholder="Elige una zona"
+                              disabled={!ciudadEntrega}
+                            />
+                          </div>
+                        </div>
+
+                        {ciudadEntrega && zonaEntrega && costoEntrega !== null && (
+                          <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[var(--textSecondary)]">
+                            <span className="material-icons-round text-sm text-[var(--primary)]">local_shipping</span>
+                            Envío: {costoEntrega === 0 ? "Gratis por alcanzar el monto mínimo" : `$${costoEntrega.toFixed(2)}`}
+                          </p>
+                        )}
                       </div>
+
                       <div className="mt-3 flex justify-between text-sm text-[var(--textSecondary)]">
                         <span>Envío</span>
                         <span>{costoEntrega === null ? "Selecciona ubicación" : costoEntrega === 0 ? "Gratis" : `$${costoEntrega.toFixed(2)}`}</span>
@@ -511,7 +682,7 @@ export default function CartPage() {
                     {mostrarMetodosPago && <div className="mt-3 space-y-2.5 rounded-2xl border border-[var(--border)] bg-[var(--muted)]/30 p-2.5">
                       <p className="px-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--textSecondary)]">Selecciona una opción</p>
                       <button onClick={handleGenerarOrden} disabled={!ciudadEntrega || !zonaEntrega || costoEntrega === null} className="group flex w-full items-center gap-3 rounded-xl border border-transparent bg-[var(--primary)] px-3.5 py-3 text-left text-[var(--primaryForeground)] shadow-sm transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-45" title="Enviar pedido por WhatsApp"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-black/10"><span className="material-icons-round text-lg">chat</span></span><span className="min-w-0 flex-1"><span className="block text-sm font-extrabold">Pedir por WhatsApp</span><span className="block text-[11px] opacity-75">Confirma disponibilidad directamente</span></span><span className="material-icons-round text-base opacity-70">arrow_forward</span></button>
-                      <button onClick={() => setMostrarPaypal(true)} disabled={!ciudadEntrega || !zonaEntrega || costoEntrega === null || !process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID} className="flex w-full items-center gap-3 rounded-xl border border-[#e4ad19] bg-[#ffc439] px-3.5 py-3 text-left text-[#111827] shadow-sm transition-all hover:bg-[#f2b900] disabled:cursor-not-allowed disabled:opacity-45"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/45"><span className="material-icons-round text-lg">account_balance_wallet</span></span><span className="min-w-0 flex-1"><span className="block text-sm font-extrabold">Pagar con PayPal</span><span className="block text-[11px] opacity-70">Pago seguro en línea</span></span><span className="material-icons-round text-base opacity-70">arrow_forward</span></button>
+                      <button onClick={() => { setPaypalPreparando(true); setMostrarPaypal(true); }} disabled={!ciudadEntrega || !zonaEntrega || costoEntrega === null || !process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID} className="flex w-full items-center gap-3 rounded-xl border border-[#e4ad19] bg-[#ffc439] px-3.5 py-3 text-left text-[#111827] shadow-sm transition-all hover:bg-[#f2b900] disabled:cursor-not-allowed disabled:opacity-45"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/45"><span className="material-icons-round text-lg">account_balance_wallet</span></span><span className="min-w-0 flex-1"><span className="block text-sm font-extrabold">Pagar con PayPal</span><span className="block text-[11px] opacity-70">Pago seguro en línea</span></span><span className="material-icons-round text-base opacity-70">arrow_forward</span></button>
                       <button onClick={() => setMostrarTransferencia(true)} disabled={!ciudadEntrega || !zonaEntrega || costoEntrega === null || cuentasBancarias.length === 0} className="flex w-full items-center gap-3 rounded-xl border border-[var(--primary)]/35 bg-[var(--card)] px-3.5 py-3 text-left text-[var(--text)] shadow-sm transition-all hover:border-[var(--primary)] hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-45"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)]"><span className="material-icons-round text-lg">account_balance</span></span><span className="min-w-0 flex-1"><span className="block text-sm font-extrabold">Transferencia bancaria</span><span className="block text-[11px] text-[var(--textSecondary)]">Envía tu comprobante de pago</span></span><span className="material-icons-round text-base text-[var(--textSecondary)]">arrow_forward</span></button>
                       {(!ciudadEntrega || !zonaEntrega) && <p className="px-2 pt-1 text-[11px] font-semibold text-[var(--textSecondary)]">Completa primero la ciudad y zona de entrega.</p>}
                       {cuentasBancarias.length === 0 && <p className="px-2 pt-1 text-[11px] font-semibold text-[var(--textSecondary)]">Las transferencias estarán disponibles cuando se configuren las cuentas.</p>}
@@ -546,11 +717,17 @@ export default function CartPage() {
         </div>
       )}
       {mostrarPaypal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-2xl bg-[var(--card)] p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">Pago seguro</p><h2 className="mt-1 text-2xl font-bold text-[var(--text)]">Pagar con PayPal</h2><p className="mt-1 text-sm text-[var(--textSecondary)]">Total: ${total.toFixed(2)} USD</p></div><button type="button" onClick={() => setMostrarPaypal(false)} className="text-2xl text-[var(--textSecondary)]" aria-label="Cerrar">×</button></div>
-            {!process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ? <p className="mt-6 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">PayPal aún no está configurado. Agrega el Client ID para habilitarlo.</p> : <div id="paypal-buttons" className="mt-6" />}
-            {paypalCargando && <p className="mt-3 text-center text-sm text-[var(--textSecondary)]">Confirmando tu pago...</p>}
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 sm:p-6" role="dialog" aria-modal="true">
+          <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col overflow-visible rounded-2xl bg-[var(--card)] shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--border)] p-5 sm:p-6"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">Pago seguro</p><h2 className="mt-1 truncate text-2xl font-bold text-[var(--text)]">Pagar con PayPal</h2><p className="mt-1 text-sm text-[var(--textSecondary)]">Total: ${total.toFixed(2)} USD</p></div><button type="button" onClick={() => setMostrarPaypal(false)} className="shrink-0 text-2xl text-[var(--textSecondary)]" aria-label="Cerrar">×</button></div>
+            <div className="min-h-0 overflow-x-auto overflow-y-auto overscroll-contain p-5 sm:p-6">
+              {!process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ? <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">PayPal aún no está configurado. Agrega el Client ID para habilitarlo.</p> : <div className="relative min-h-40 w-full max-w-full">
+                <div id="paypal-buttons" className={`w-full max-w-full pt-1 ${paypalProcesando ? "pointer-events-none opacity-50" : ""}`} />
+                {(paypalPreparando || paypalProcesando) && <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-xl bg-[var(--card)]/90 px-4 text-center backdrop-blur-[2px]"><span className="h-9 w-9 animate-spin rounded-full border-4 border-[#ffc439] border-t-transparent" /><p className="text-sm font-semibold text-[var(--text)]">{paypalPreparando ? "Cargando opciones de pago..." : "Abriendo pago con tarjeta o PayPal..."}</p><p className="text-xs text-[var(--textSecondary)]">Espera un momento, no presiones nuevamente</p></div>}
+              </div>}
+              {paypalCargando && <p className="mt-3 text-center text-sm text-[var(--textSecondary)]">Confirmando tu pago...</p>}
+              {paypalProcesando && !paypalCargando && <p className="mt-3 text-center text-xs font-semibold text-[var(--textSecondary)]">Abriendo el pago seguro de PayPal...</p>}
+            </div>
           </div>
         </div>
       )}
