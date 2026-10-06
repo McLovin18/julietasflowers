@@ -272,7 +272,7 @@ export const Navbar = () => {
     <>
 
       <nav
-        className="sticky top-0 z-40 border-b py-3 shadow-sm backdrop-blur-md"
+        className="sticky top-0 z-40 border-b py-4 shadow-sm backdrop-blur-md"
         style={{ background: BRAND.bg, borderColor: BRAND.border }}
       >
         {/* ── Header principal ── */}
@@ -311,9 +311,9 @@ export const Navbar = () => {
               <Image
                 src="/logo_jf.png"
                 alt="Julieta's Flowers"
-                width={180}
-                height={40}
-                className="h-8 sm:h-10 w-auto object-contain"
+                width={280}
+                height={60}
+                className="h-12 sm:h-16 w-auto object-contain"
                 priority
               />
             </a>
