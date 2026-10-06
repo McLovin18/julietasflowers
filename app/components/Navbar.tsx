@@ -272,7 +272,7 @@ export const Navbar = () => {
     <>
 
       <nav
-        className="sticky top-0 z-40 border-b py-4 shadow-sm backdrop-blur-md"
+        className="sticky top-0 z-40 border-b py-6 shadow-sm backdrop-blur-md"
         style={{ background: BRAND.bg, borderColor: BRAND.border }}
       >
         {/* ── Header principal ── */}
@@ -309,11 +309,11 @@ export const Navbar = () => {
               className="flex items-center gap-2 shrink-0 text-white pointer-events-auto"
             >
               <Image
-                src="/logo_jf.png"
+                src="/logoJulietas.png"
                 alt="Julieta's Flowers"
-                width={280}
-                height={60}
-                className="h-12 sm:h-16 w-auto object-contain"
+                width={350}
+                height={80}
+                className="h-16 sm:h-20 w-auto object-contain"
                 priority
               />
             </a>
