@@ -252,6 +252,8 @@ export const Navbar = () => {
   const links = [
     { href: "/", label: "Inicio" },
     { href: "/productos", label: "Tienda" },
+    { href: "/colecciones", label: "Colecciones" },
+    { href: "/reservas", label: "Reservas" },
     { href: "/blogs", label: "Blogs" },
 
   ];
@@ -292,7 +294,7 @@ export const Navbar = () => {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="px-3 py-2 rounded-xl text-sm font-medium text-white transition-colors hover:bg-white/10 whitespace-nowrap text-body"
+                  className="px-3 py-2 rounded-xl text-base font-medium text-white transition-colors hover:bg-white/10 whitespace-nowrap text-body"
                 >
                   {link.label}
                 </Link>
@@ -467,6 +469,15 @@ export const Navbar = () => {
                       <span className="material-icons-round text-base">person_outline</span>
                       Perfil
                     </a>
+                    {isAdmin && (
+                      <a
+                        href="/admin/eventos-especiales"
+                        className="flex items-center gap-2 px-4 py-3 text-sm transition-colors text-slate-900 hover:bg-slate-50 text-body"
+                      >
+                        <span className="material-icons-round text-base">event</span>
+                        Eventos Especiales
+                      </a>
+                    )}
                     <a
                       href="/admin/config"
                       className="flex items-center gap-2 px-4 py-3 text-sm transition-colors text-slate-900 hover:bg-slate-50 text-body"
@@ -750,6 +761,16 @@ export const Navbar = () => {
                     <span className="material-icons-round text-base">person</span>
                     Perfil
                   </a>
+                  {isAdmin && (
+                    <a
+                      href="/admin/eventos-especiales"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"
+                      style={{ color: BRAND.white }}
+                    >
+                      <span className="material-icons-round text-base">event</span>
+                      Eventos Especiales
+                    </a>
+                  )}
                   <a
                     href="/admin/config"
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors"

@@ -3,6 +3,10 @@
     {
       "path": "/api/cleanup",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/reservas/recordatorios-automaticos",
+      "schedule": "0 9 * * *"
     }
   ]
 }

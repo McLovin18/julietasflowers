@@ -39,6 +39,13 @@ function buildOrderEmailHTML(orden: any): string {
                 <p style="margin:0 0 4px;font-size:12px;color:#666;text-transform:uppercase;letter-spacing:0.5px;font-weight:bold;">Número de orden</p>
                 <p style="margin:0;font-size:24px;font-weight:bold;color:#FACC15;">${orden.orderId || "N/A"}</p>
                 <p style="margin:8px 0 0;font-size:13px;color:#666;">Fecha: ${orden.createdAt ? new Date(orden.createdAt).toLocaleDateString("es-ES") : "N/A"}</p>
+                ${orden.reserva ? `
+                <div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;">
+                  <p style="margin:0 0 4px;font-size:12px;color:#666;text-transform:uppercase;letter-spacing:0.5px;font-weight:bold;">Evento reservado</p>
+                  <p style="margin:0;font-size:16px;font-weight:bold;color:#FACC15;">${orden.reserva.nombreEventoPersonalizado || orden.reserva.nombreEvento || "Evento especial"}</p>
+                  <p style="margin:4px 0 0;font-size:13px;color:#666;">Fecha del evento: ${new Date(orden.reserva.fechaEvento).toLocaleDateString("es-ES")}</p>
+                </div>
+                ` : ""}
               </div>
             </td>
           </tr>

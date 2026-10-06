@@ -43,10 +43,10 @@
   --color-yellow-dark: #e5c400;       /* amarillo oscurecido */
 
   /* --- Semántica general --- */
-  --background: var(--color-white-vintage);
+  --background: #ffffff;
   --foreground: var(--color-black-soft);
 
-  --bg: var(--color-white-vintage);
+  --bg: #ffffff;
   --bgSecondary: var(--color-beige-pink);
 
   --text: var(--color-black-soft);
@@ -93,9 +93,9 @@
   --font-body-style: normal;
   --font-body-weight: 400;
   --font-body-weight-bold: 700;
-  
-  /* Lovely Flowers alternativa: Great Vibes (cursiva, ornamental, sofisticada) */
-  --font-heading-family: var(--font-lovely-flowers), "Great Vibes", var(--font-vonca), "Playfair Display", "Cormorant Garamond", Georgia, serif;
+
+  /* Heading font changed to standard font (no handwritten) */
+  --font-heading-family: var(--font-vonca), "Playfair Display", "Cormorant Garamond", Georgia, serif;
   --font-heading-style: normal;
   --font-heading-weight: 400;
   
@@ -228,14 +228,14 @@ nav h6 {
 
 /* Botones con UX refinado */
 .btn-primary-ux {
-  background-color: var(--color-gold-elegant);
-  color: var(--color-black-soft);
+  background-color: #000000;
+  color: #ffffff;
   border: none;
   transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .btn-primary-ux:hover {
-  background-color: var(--color-gold-dark);
+  background-color: #333333;
   transform: translateY(-1px);
 }
 

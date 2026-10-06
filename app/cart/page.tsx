@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { obtenerBodegas } from "../lib/bodegas-db";
 import { getSnapshotPricing } from "../lib/pricing";
@@ -140,6 +141,14 @@ function Dropdown({
 export default function CartPage() {
   const { carrito: carritoRaw, removeCarrito, addCarrito } = useUser();
   const carrito = carritoRaw as any[];
+  const searchParams = useSearchParams();
+  const reservaCodigo = searchParams?.get("reserva");
+  
+  // Filter cart items by reserva code if provided
+  const filteredCarrito = reservaCodigo 
+    ? carrito.filter((item) => item.reserva?.codigo === reservaCodigo)
+    : carrito;
+  
   const [error, setError] = useState("");
   const { isLogged } = useUser();
   const [atributos, setAtributos] = useState<any[]>([]);
@@ -187,7 +196,7 @@ export default function CartPage() {
       .catch(() => setError("No se pudieron cargar las cuentas bancarias."));
   }, []);
 
-  const subtotal = carrito.reduce((sum, p) => {
+  const subtotal = filteredCarrito.reduce((sum, p) => {
     const { finalPrice } = calcularPrecioData(p);
     return sum + finalPrice * (p.cantidad || 1);
   }, 0);
@@ -231,7 +240,7 @@ export default function CartPage() {
           const response = await fetch("/api/paypal/crear-orden", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productos: carrito, deliveryCost: costoEntrega, ciudadEntrega, zonaEntrega }),
+            body: JSON.stringify({ productos: filteredCarrito, deliveryCost: costoEntrega, ciudadEntrega, zonaEntrega }),
           });
           const result = await response.json();
           if (!response.ok) throw new Error(result.error || "No se pudo crear el pago.");
@@ -320,7 +329,7 @@ export default function CartPage() {
     const bodegas = await obtenerBodegas();
     const bodegasMap = new Map(bodegas.map((b) => [b.id, b.tiempoEntrega]));
 
-    const productosText = carrito
+    const productosText = filteredCarrito
       .map((p) => {
         const tiempoEntrega = bodegasMap.get(p.bodegaId || "technothings") || 72;
         const cantidad = p.cantidad || 1;
@@ -342,7 +351,7 @@ export default function CartPage() {
   const handleGenerarOrden = async () => {
     setError("");
 
-    if (carrito.length === 0) {
+    if (filteredCarrito.length === 0) {
       setError("El carrito está vacío");
       return;
     }
@@ -352,7 +361,7 @@ export default function CartPage() {
       return;
     }
 
-    for (const p of carrito) {
+    for (const p of filteredCarrito) {
       const availableStock = resolveAvailableStock(p);
       if (p.cantidad > availableStock) {
         setError(`Solo hay ${availableStock} unidades disponibles de "${p.nombre}".`);
@@ -385,13 +394,14 @@ export default function CartPage() {
           customerName: nombreCliente,
           customerPhone: telefonoCliente,
           customerEmail: correoCliente,
-          productos: carrito,
+          productos: filteredCarrito,
           ciudadEntrega,
           zonaEntrega: zonaEntrega === "__ciudad__" ? "Toda la ciudad" : zonaEntrega,
           subtotal,
           deliveryCost: costoEntrega,
           cuentaId: cuentaSeleccionada,
           evidenceUrl,
+          reserva: reservaCodigo ? { codigo: reservaCodigo } : undefined,
         }),
       });
       const result = await response.json();
@@ -480,12 +490,26 @@ export default function CartPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text)]">
               Carrito
             </h1>
-            {carrito.length > 0 && (
+            {filteredCarrito.length > 0 && (
               <span className="bg-[var(--card)] border border-[var(--border)] text-[var(--text)] text-xs font-bold px-2.5 py-1 rounded-full">
-                {carrito.length} {carrito.length === 1 ? "producto" : "productos"}
+                {filteredCarrito.length} {filteredCarrito.length === 1 ? "producto" : "productos"}
               </span>
             )}
           </div>
+
+          {reservaCodigo && filteredCarrito.length > 0 && filteredCarrito[0]?.reserva && (
+            <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/30 rounded-xl px-4 py-3 mb-6">
+              <div className="flex items-center gap-2">
+                <span className="material-icons-round text-[var(--primary)]">event</span>
+                <div>
+                  <p className="text-xs font-semibold text-[var(--primary)] uppercase tracking-wide">Reserva para evento especial</p>
+                  <p className="text-sm text-[var(--text)] font-medium">
+                    {filteredCarrito[0].reserva.nombreEvento} · {new Date(filteredCarrito[0].reserva.fechaEvento).toLocaleDateString("es-ES")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-6">
@@ -494,12 +518,12 @@ export default function CartPage() {
             </div>
           )}
 
-          {carrito.length === 0 ? (
+          {filteredCarrito.length === 0 ? (
             <EmptyCart />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               <div className="lg:col-span-2 space-y-3">
-                {carrito.map((p) => {
+                {filteredCarrito.map((p) => {
                   const itemKey = resolveCartItemKey(p);
                   const { hasDiscount, fakeOldPrice, finalPrice, discount } = calcularPrecioData(p);
                   const lineTotal = finalPrice * (p.cantidad || 1);
@@ -613,7 +637,7 @@ export default function CartPage() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-sm text-[var(--textSecondary)]">
                         <span>
-                          Subtotal ({carrito.reduce((n, p) => n + (p.cantidad || 1), 0)} items)
+                          Subtotal ({filteredCarrito.reduce((n, p) => n + (p.cantidad || 1), 0)} items)
                         </span>
                         <span>${subtotal.toFixed(2)}</span>
                       </div>

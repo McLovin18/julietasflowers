@@ -58,13 +58,13 @@ const Footer: React.FC = () => {
 
             {/* Columna 1: Información de la tienda */}
             <div className="flex flex-col items-center md:items-start text-center md:text-left gap-1">
-              <span className="text-base font-bold tracking-wide text-white">
+              <span className="text-lg font-bold tracking-wide text-white">
                 Julietas Flowers
               </span>
-              <span className="text-xs text-[#F5E6C8]">
+              <span className="text-sm text-[#F5E6C8]">
                 Florería &amp; Detalles
               </span>
-              <p className="text-xs text-[#F5E6C8]/90 mt-1 max-w-[220px]">
+              <p className="text-sm text-[#F5E6C8]/90 mt-1 max-w-[220px]">
                 Creamos emociones con cada flor. Arreglos personalizados y experiencias únicas en Samborondón.
               </p>
             </div>
@@ -95,7 +95,7 @@ const Footer: React.FC = () => {
                 href={`https://wa.me/${WHATSAPP_NUMBER}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 text-xs text-[#F5E6C8] hover:text-white transition-colors"
+                className="flex items-center gap-2 text-sm text-[#F5E6C8] hover:text-white transition-colors"
                 onClick={() => trackLinkClick().catch(console.error)}
               >
                 <IconWhatsApp />
@@ -106,7 +106,7 @@ const Footer: React.FC = () => {
                 href={MAPS_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-2 text-xs text-[#F5E6C8] hover:text-white transition-colors"
+                className="flex items-center gap-2 text-sm text-[#F5E6C8] hover:text-white transition-colors"
                 onClick={() => trackLinkClick().catch(console.error)}
               >
                 <IconLocation />

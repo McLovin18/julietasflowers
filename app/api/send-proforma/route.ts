@@ -166,6 +166,17 @@ function buildProformaHTML(orden: any): string {
                 </td>
               </tr>
             </table>
+            ${orden.reserva ? `
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb;">
+              <tr>
+                <td>
+                  <p style="margin:0;font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:bold;">Evento reservado</p>
+                  <p style="margin:4px 0 0;font-size:16px;font-weight:bold;color:#FACC15;">${orden.reserva.nombreEventoPersonalizado || orden.reserva.nombreEvento || "Evento especial"}</p>
+                  <p style="margin:4px 0 0;font-size:13px;color:#6b7280;">Fecha del evento: ${new Date(orden.reserva.fechaEvento).toLocaleDateString("es-ES")}</p>
+                </td>
+              </tr>
+            </table>
+            ` : ""}
           </td>
         </tr>
         <!-- Divider -->

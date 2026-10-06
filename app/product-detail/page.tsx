@@ -37,6 +37,10 @@ export default function ProductDetailPage({ params }) {
   const [currentStock, setCurrentStock] = useState(0);
   const [atributos, setAtributos] = useState<Record<string, string>>({}); // Mapeo de ID -> nombre
   const [personalizacionValues, setPersonalizacionValues] = useState<Record<string, string>>({});
+  const [showReservationInput, setShowReservationInput] = useState(false);
+  const [reservationCode, setReservationCode] = useState("");
+  const [reservationData, setReservationData] = useState<any>(null);
+  const [validatingCode, setValidatingCode] = useState(false);
 
   const {
     isLogged, user, isAdmin,
@@ -47,6 +51,32 @@ export default function ProductDetailPage({ params }) {
   const { showToast } = useToast();
 
   const searchParams = useSearchParams();
+
+  // Validate reservation code
+  async function validateReservationCode() {
+    if (!reservationCode || reservationCode.length !== 6) {
+      alert("Por favor ingresa un código de 6 dígitos válido");
+      return;
+    }
+
+    setValidatingCode(true);
+    try {
+      const { obtenerReservaPorCodigo } = await import("../lib/reservas-db");
+      const reserva = await obtenerReservaPorCodigo(reservationCode);
+      
+      if (!reserva) {
+        alert("Código de reserva no encontrado");
+        setReservationData(null);
+      } else {
+        setReservationData(reserva);
+        showToast(`Reserva encontrada: ${reserva.nombreEventoPersonalizado || "Evento personalizado"}`);
+      }
+    } catch (error) {
+      console.error("Error validando código:", error);
+      alert("Error al validar el código");
+    }
+    setValidatingCode(false);
+  }
 
   // Cargar atributos disponibles
   useEffect(() => {
@@ -650,6 +680,61 @@ export default function ProductDetailPage({ params }) {
                 </div>
               </div>
             )}
+
+            {/* Reservation link */}
+            <div className="mb-4">
+              {!showReservationInput ? (
+                <button
+                  onClick={() => setShowReservationInput(true)}
+                  className="text-sm text-black hover:text-gray-700 underline"
+                >
+                  Hacer una reservación
+                </button>
+              ) : (
+                <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-black">Ingresa tu código de reserva</span>
+                    <button
+                      onClick={() => {
+                        setShowReservationInput(false);
+                        setReservationCode("");
+                        setReservationData(null);
+                      }}
+                      className="text-gray-500 hover:text-black"
+                    >
+                      <span className="material-icons-round text-lg">close</span>
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={reservationCode}
+                      onChange={(e) => setReservationCode(e.target.value)}
+                      placeholder="Código de 6 dígitos"
+                      maxLength={6}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black"
+                    />
+                    <button
+                      onClick={validateReservationCode}
+                      disabled={validatingCode}
+                      className="px-4 py-2 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    >
+                      {validatingCode ? "Validando..." : "Validar"}
+                    </button>
+                  </div>
+                  {reservationData && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-xl">
+                      <p className="text-sm text-green-800 font-medium">
+                        ✓ Reserva confirmada
+                      </p>
+                      <p className="text-xs text-green-700 mt-1">
+                        {reservationData.nombreEventoPersonalizado || "Evento personalizado"} - {reservationData.fechaEvento.toLocaleDateString("es-ES")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Acciones */}
             <div className="flex gap-2">

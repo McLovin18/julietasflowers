@@ -94,5 +94,21 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+
+    // Eventos especiales: solo admin puede gestionar, lectura pública
+    match /eventos_especiales/{eventoId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Reservas: cualquiera puede crear, lectura por código, admin puede gestionar
+    match /reservas/{reservaId} {
+      // Cualquiera puede crear una reserva (invitados o autenticados)
+      allow create: if true;
+      // Solo admin puede leer todas las reservas
+      allow read: if isAdmin();
+      // Solo admin puede actualizar o eliminar reservas
+      allow update, delete: if isAdmin();
+    }
   }
 }
