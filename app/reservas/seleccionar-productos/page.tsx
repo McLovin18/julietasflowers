@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { obtenerProductos } from "../../lib/productos-db";
 import ProductoCard from "../../components/ProductoCard";
 import { useUser } from "../../context/UserContext";
@@ -9,7 +9,8 @@ import { useToast } from "../../context/ToastContext";
 
 export default function SeleccionarProductosPage() {
   const searchParams = useSearchParams();
-  const reservaCodigo = searchParams.get("codigo");
+  const router = useRouter();
+  const reservaCodigo = searchParams?.get("codigo");
   
   const [productos, setProductos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +83,7 @@ export default function SeleccionarProductosPage() {
     showToast(`${selectedProducts.size} producto(s) añadido(s) al carrito con reserva`);
     
     // Redirect to cart with reserva filter
-    window.location.href = `/cart?reserva=${reservaCodigo}`;
+    router.push(`/cart?reserva=${reservaCodigo}`);
   }
 
   if (loading) {

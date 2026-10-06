@@ -7,7 +7,7 @@ import { paypalRequest } from "../../../lib/paypal";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { productos, deliveryCost = 0, ciudadEntrega, zonaEntrega } = body;
+    const { productos, deliveryCost = 0, ciudadEntrega, zonaEntrega, reserva } = body;
     if (!Array.isArray(productos) || productos.length === 0 || !ciudadEntrega || !zonaEntrega) {
       return NextResponse.json({ error: "Productos y ubicación de entrega son requeridos." }, { status: 400 });
     }
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       ciudadEntrega,
       zonaEntrega,
       customerEmail: body.customerEmail || null,
+      reserva: reserva || null,
       createdAt: admin.firestore.Timestamp.now(),
       estado: "creada",
     });

@@ -47,6 +47,12 @@ export async function POST(req: NextRequest) {
     if (result.created) {
       after(async () => {
         try {
+          // Mark reservation as used if applicable
+          if (checkout.reserva?.codigo) {
+            const { marcarReservaComoUsada } = await import("../../../lib/reservas-db");
+            await marcarReservaComoUsada(checkout.reserva.codigo);
+          }
+
           const { notificarCompraPaypal } = await import("../../../lib/transferencia-email");
           await notificarCompraPaypal(result.orderId);
         } catch (emailError) {

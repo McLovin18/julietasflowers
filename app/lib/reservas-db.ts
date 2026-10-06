@@ -22,6 +22,8 @@ export interface Reserva {
   nombreEventoPersonalizado?: string; // Si es evento personalizado
   fechaEvento: Date;
   fechaReserva: Date;
+  fechaExpiracion: Date; // 2 días desde la creación
+  usada: boolean; // Si ya fue usada para una compra
   recordatorioEnviado: boolean;
   recordatorioAutomaticoEnviado: boolean;
   createdAt?: Date;
@@ -44,6 +46,7 @@ export async function crearReserva(
   const id = `res_${codigo}`;
   
   const fecha = fechaEvento || new Date();
+  const fechaExpiracion = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000); // 2 días desde ahora
   
   const reservaData: any = {
     codigo,
@@ -51,6 +54,8 @@ export async function crearReserva(
     email,
     fechaEvento: Timestamp.fromDate(fecha),
     fechaReserva: Timestamp.now(),
+    fechaExpiracion: Timestamp.fromDate(fechaExpiracion),
+    usada: false,
     recordatorioEnviado: false,
     recordatorioAutomaticoEnviado: false,
     createdAt: Timestamp.now()
@@ -75,13 +80,15 @@ export async function crearReserva(
     nombreEventoPersonalizado,
     fechaEvento: fecha,
     fechaReserva: new Date(),
+    fechaExpiracion,
+    usada: false,
     recordatorioEnviado: false,
     recordatorioAutomaticoEnviado: false,
     createdAt: new Date()
   };
 }
 
-// Obtener reserva por código
+// Obtener reserva por código (valida expiración y uso)
 export async function obtenerReservaPorCodigo(codigo: string): Promise<Reserva | null> {
   const snapshot = await getDocs(
     query(collection(db, COLLECTION), where("codigo", "==", codigo))
@@ -91,11 +98,25 @@ export async function obtenerReservaPorCodigo(codigo: string): Promise<Reserva |
   
   const doc = snapshot.docs[0];
   const data = doc.data();
+  
+  const fechaExpiracion = data.fechaExpiracion?.toDate ? data.fechaExpiracion.toDate() : new Date(data.fechaExpiracion);
+  
+  // Check if reservation has expired
+  if (new Date() > fechaExpiracion) {
+    return null; // Reservation expired
+  }
+  
+  // Check if reservation has already been used
+  if (data.usada === true) {
+    return null; // Reservation already used
+  }
+  
   return {
     id: doc.id,
     ...data,
     fechaEvento: data.fechaEvento?.toDate ? data.fechaEvento.toDate() : new Date(data.fechaEvento),
     fechaReserva: data.fechaReserva?.toDate ? data.fechaReserva.toDate() : new Date(data.fechaReserva),
+    fechaExpiracion,
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
   } as Reserva;
 }
@@ -112,6 +133,7 @@ export async function obtenerReservas(): Promise<Reserva[]> {
       ...data,
       fechaEvento: data.fechaEvento?.toDate ? data.fechaEvento.toDate() : new Date(data.fechaEvento),
       fechaReserva: data.fechaReserva?.toDate ? data.fechaReserva.toDate() : new Date(data.fechaReserva),
+      fechaExpiracion: data.fechaExpiracion?.toDate ? data.fechaExpiracion.toDate() : new Date(data.fechaExpiracion),
       createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
     } as Reserva;
   });
@@ -139,6 +161,7 @@ export async function obtenerReservasParaRecordatorio(): Promise<Reserva[]> {
       ...data,
       fechaEvento: data.fechaEvento?.toDate ? data.fechaEvento.toDate() : new Date(data.fechaEvento),
       fechaReserva: data.fechaReserva?.toDate ? data.fechaReserva.toDate() : new Date(data.fechaReserva),
+      fechaExpiracion: data.fechaExpiracion?.toDate ? data.fechaExpiracion.toDate() : new Date(data.fechaExpiracion),
       createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
     } as Reserva;
   });
@@ -149,6 +172,20 @@ export async function marcarRecordatorioEnviado(reservaId: string, esAutomatico:
   await setDoc(doc(db, COLLECTION, reservaId), {
     [esAutomatico ? "recordatorioAutomaticoEnviado" : "recordatorioEnviado"]: true
   }, { merge: true });
+}
+
+// Marcar reserva como usada
+export async function marcarReservaComoUsada(codigo: string): Promise<void> {
+  const snapshot = await getDocs(
+    query(collection(db, COLLECTION), where("codigo", "==", codigo))
+  );
+  
+  if (!snapshot.empty) {
+    const reservaDoc = snapshot.docs[0];
+    await setDoc(doc(db, COLLECTION, reservaDoc.id), {
+      usada: true
+    }, { merge: true });
+  }
 }
 
 // Eliminar reserva

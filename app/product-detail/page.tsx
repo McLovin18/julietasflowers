@@ -10,7 +10,7 @@ import React, { useState, useEffect } from "react";
 import { ProductReview } from "../lib/reviews-types";
 import { useUser } from "../context/UserContext";
 import { useToast } from "../context/ToastContext";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import BottomBarPublic from "../components/BottomBarPublic";
 import dynamic from "next/dynamic";
 import { getCartItemKey } from "../context/userLocalStorage";
@@ -51,11 +51,43 @@ export default function ProductDetailPage({ params }) {
   const { showToast } = useToast();
 
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Check if product is fully configured (variations and personalization)
+  function isProductFullyConfigured(): boolean {
+    // Check variations
+    if (hasVariations && variationAttributeIds.length > 0) {
+      if (!variationAttributeIds.every(attrId => selectedVariations[attrId])) {
+        return false;
+      }
+    }
+
+    // Check personalization fields
+    if ((producto as any)?.personalizado && (producto as any)?.camposPersonalizacion) {
+      const campos = (producto as any).camposPersonalizacion;
+      if (campos.length > 0) {
+        const allFieldsFilled = campos.every((campo: any) => {
+          const value = personalizacionValues[campo.id];
+          return value && value.trim() !== "";
+        });
+        if (!allFieldsFilled) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
 
   // Validate reservation code
   async function validateReservationCode() {
     if (!reservationCode || reservationCode.length !== 6) {
       alert("Por favor ingresa un código de 6 dígitos válido");
+      return;
+    }
+
+    if (!producto) {
+      alert("No hay producto seleccionado");
       return;
     }
 
@@ -68,8 +100,29 @@ export default function ProductDetailPage({ params }) {
         alert("Código de reserva no encontrado");
         setReservationData(null);
       } else {
-        setReservationData(reserva);
-        showToast(`Reserva encontrada: ${reserva.nombreEventoPersonalizado || "Evento personalizado"}`);
+        // Add product to cart with reservation info
+        await addCarrito({
+          id: producto.id,
+          nombre: producto.nombre,
+          precio: producto.precio,
+          imagenes: producto.imagenes,
+          categoria: producto.categoria,
+          subcategoria: producto.subcategoria,
+          subsubcategoria: producto.subsubcategoria,
+          bodegaId: producto.bodegaId,
+          stock: producto.stock,
+          cantidad: cantidad,
+          reserva: {
+            codigo: reserva.codigo,
+            nombreEvento: reserva.nombreEventoPersonalizado || "Evento especial",
+            fechaEvento: reserva.fechaEvento
+          }
+        } as any);
+
+        showToast(`Producto añadido al carrito con reserva para ${reserva.nombreEventoPersonalizado || "Evento especial"}`);
+        
+        // Redirect to cart with reserva filter
+        router.push(`/cart?reserva=${reservationCode}`);
       }
     } catch (error) {
       console.error("Error validando código:", error);
@@ -681,16 +734,17 @@ export default function ProductDetailPage({ params }) {
               </div>
             )}
 
-            {/* Reservation link */}
-            <div className="mb-4">
-              {!showReservationInput ? (
-                <button
-                  onClick={() => setShowReservationInput(true)}
-                  className="text-sm text-black hover:text-gray-700 underline"
-                >
-                  Hacer una reservación
-                </button>
-              ) : (
+            {/* Reservation link - only show if product is fully configured */}
+            {isProductFullyConfigured() && (
+              <div className="mb-4">
+                {!showReservationInput ? (
+                  <button
+                    onClick={() => setShowReservationInput(true)}
+                    className="text-sm text-black hover:text-gray-700 underline"
+                  >
+                    Hacer una reservación
+                  </button>
+                ) : (
                 <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-black">Ingresa tu código de reserva</span>
@@ -734,7 +788,8 @@ export default function ProductDetailPage({ params }) {
                   )}
                 </div>
               )}
-            </div>
+              </div>
+            )}
 
             {/* Acciones */}
             <div className="flex gap-2">

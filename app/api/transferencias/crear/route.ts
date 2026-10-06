@@ -6,7 +6,7 @@ import { buildOrderProductLine } from "../../../lib/order-checkout-utils";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customerName, customerPhone, customerEmail, productos, ciudadEntrega, zonaEntrega, deliveryCost, cuentaId, evidenceUrl } = body;
+    const { customerName, customerPhone, customerEmail, productos, ciudadEntrega, zonaEntrega, deliveryCost, cuentaId, evidenceUrl, reserva } = body;
     if (!customerName?.trim() || !customerPhone?.trim() || !customerEmail?.trim() || !Array.isArray(productos) || productos.length === 0 || !ciudadEntrega || !zonaEntrega || !cuentaId || !evidenceUrl) {
       return NextResponse.json({ error: "Completa todos los datos y adjunta la evidencia de pago." }, { status: 400 });
     }
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         productos: processedProducts,
         cuentaBancaria: { id: accountSnap.id, ...accountSnap.data() },
         evidenceUrl,
+        reserva: reserva || null,
         stockReserved: false,
         notificacionCorreo: "pendiente",
         createdAt: now,
@@ -68,6 +69,12 @@ export async function POST(req: NextRequest) {
     // Fire-and-forget del servidor: se ejecuta despues de responder, pero no depende del navegador.
     after(async () => {
       try {
+        // Mark reservation as used if applicable
+        if (reserva?.codigo) {
+          const { marcarReservaComoUsada } = await import("../../../lib/reservas-db");
+          await marcarReservaComoUsada(reserva.codigo);
+        }
+
         const { notificarTransferencia } = await import("../../../lib/transferencia-email");
         await notificarTransferencia(orderData.id);
       } catch (emailError) {

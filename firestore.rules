@@ -101,12 +101,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // Reservas: cualquiera puede crear, lectura por código, admin puede gestionar
+    // Reservas: cualquiera puede crear, lectura pública para validación por código
     match /reservas/{reservaId} {
       // Cualquiera puede crear una reserva (invitados o autenticados)
       allow create: if true;
-      // Solo admin puede leer todas las reservas
-      allow read: if isAdmin();
+      // Cualquiera puede leer reservas (necesario para validación de código)
+      allow read: if true;
       // Solo admin puede actualizar o eliminar reservas
       allow update, delete: if isAdmin();
     }
