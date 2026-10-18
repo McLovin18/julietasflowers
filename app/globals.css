@@ -133,6 +133,11 @@ body {
   font-style: var(--font-body-style);
   font-weight: var(--font-body-weight);
   font-size: calc(1rem * var(--font-body-scale));
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
 }
 
 

@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { after, NextRequest, NextResponse } from "next/server";
 import admin from "../../../lib/firebase-admin";
-import { buildOrderProductLine } from "../../../lib/order-checkout-utils";
+import { buildOrderProductLine, applyStockDeltaToProduct } from "../../../lib/order-checkout-utils";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customerName, customerPhone, customerEmail, productos, ciudadEntrega, zonaEntrega, deliveryCost, cuentaId, evidenceUrl, reserva } = body;
-    if (!customerName?.trim() || !customerPhone?.trim() || !customerEmail?.trim() || !Array.isArray(productos) || productos.length === 0 || !ciudadEntrega || !zonaEntrega || !cuentaId || !evidenceUrl) {
+    const { customerName, customerCedula, customerPhone, customerEmail, customerAddress, productos, ciudadEntrega, zonaEntrega, deliveryCost, cuentaId, evidenceUrl, reserva } = body;
+    if (!customerName?.trim() || !customerCedula?.trim() || !customerPhone?.trim() || !customerEmail?.trim() || !customerAddress?.trim() || !Array.isArray(productos) || productos.length === 0 || !ciudadEntrega || !zonaEntrega || !cuentaId || !evidenceUrl) {
       return NextResponse.json({ error: "Completa todos los datos y adjunta la evidencia de pago." }, { status: 400 });
     }
     if (!/^\S+@\S+\.\S+$/.test(customerEmail.trim())) {
@@ -39,15 +39,39 @@ export async function POST(req: NextRequest) {
       const nextNumber = Number(counterSnap.data()?.lastNumber || 0) + 1;
       const orderId = `ord-${String(nextNumber).padStart(5, "0")}`;
       const now = admin.firestore.Timestamp.now();
+
+      // Reservar stock para cada producto
+      const items = Array.isArray(processedProducts) ? processedProducts : [];
+      const productRefs = items.map((item: any) => db.collection("productos").doc(item.id));
+      const productSnaps = await transaction.getAll(...productRefs);
+      const stockUpdates = productSnaps.map((productSnap, index) => {
+        if (!productSnap.exists) throw new Error(`Producto no encontrado: ${items[index]?.id}`);
+        const item = items[index];
+        const nextStock = applyStockDeltaToProduct({ id: productSnap.id, ...productSnap.data() }, item, -Number(item.cantidad || 1));
+        return { productSnap, item, nextStock };
+      });
+
+      for (const { productSnap, item, nextStock } of stockUpdates) {
+        transaction.update(productSnap.ref, { ...nextStock, lastStockUpdateAt: now });
+        transaction.set(productSnap.ref.collection("stock_history").doc(`transfer_reserve_${orderId}_${Date.now()}`), {
+          type: "transfer_reserved",
+          cantidad: -Number(item.cantidad || 1),
+          orderId,
+          timestamp: now,
+        });
+      }
+
       const data = {
         orderId,
         userId: body.userId || "guest",
         estado: "transferencia_pendiente",
         metodoPago: "transferencia",
         customerName: customerName.trim(),
+        customerCedula: customerCedula.trim(),
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim(),
         email: customerEmail.trim(),
+        customerAddress: customerAddress.trim(),
         ciudadEntrega,
         zonaEntrega,
         subtotal: calculatedSubtotal,
@@ -57,8 +81,10 @@ export async function POST(req: NextRequest) {
         cuentaBancaria: { id: accountSnap.id, ...accountSnap.data() },
         evidenceUrl,
         reserva: reserva || null,
-        stockReserved: false,
+        stockReserved: true,
+        stockReservedAt: now,
         notificacionCorreo: "pendiente",
+        notificacionCliente: "pendiente",
         createdAt: now,
       };
       transaction.set(counterRef, { lastNumber: nextNumber }, { merge: true });
@@ -75,11 +101,12 @@ export async function POST(req: NextRequest) {
           await marcarReservaComoUsada(reserva.codigo);
         }
 
-        const { notificarTransferencia } = await import("../../../lib/transferencia-email");
+        const { notificarTransferencia, notificarClienteTransferenciaCreada } = await import("../../../lib/transferencia-email");
         await notificarTransferencia(orderData.id);
+        await notificarClienteTransferenciaCreada(orderData.id);
       } catch (emailError) {
         console.error("[transferencias/crear] La orden quedo guardada, pero fallo el correo:", emailError);
-        await db.collection("ordenes").doc(orderData.id).update({ notificacionCorreo: "fallida" });
+        await db.collection("ordenes").doc(orderData.id).update({ notificacionCorreo: "fallida", notificacionCliente: "fallida" });
       }
     });
 

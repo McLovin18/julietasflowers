@@ -160,8 +160,10 @@ export default function CartPage() {
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancaria[]>([]);
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState("");
   const [nombreCliente, setNombreCliente] = useState("");
+  const [cedulaRuc, setCedulaRuc] = useState("");
   const [telefonoCliente, setTelefonoCliente] = useState("");
   const [correoCliente, setCorreoCliente] = useState("");
+  const [direccionEntrega, setDireccionEntrega] = useState("");
   const [evidencia, setEvidencia] = useState<File | null>(null);
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [subiendoEvidencia, setSubiendoEvidencia] = useState(false);
@@ -381,8 +383,8 @@ export default function CartPage() {
       setError("Selecciona primero la ciudad y zona de entrega.");
       return;
     }
-    if (!nombreCliente.trim() || !telefonoCliente.trim() || !correoCliente.trim() || !cuentaSeleccionada || !evidenceUrl) {
-      setError("Completa tus datos, selecciona una cuenta y envía la captura de pago.");
+    if (!nombreCliente.trim() || !cedulaRuc.trim() || !telefonoCliente.trim() || !correoCliente.trim() || !direccionEntrega.trim() || !cuentaSeleccionada || !evidenceUrl) {
+      setError("Completa tus datos, dirección, selecciona una cuenta y envía la captura de pago.");
       return;
     }
     setEnviandoTransferencia(true);
@@ -410,6 +412,11 @@ export default function CartPage() {
       setEvidencia(null);
       setEvidenceUrl("");
       setCuentaSeleccionada("");
+      setNombreCliente("");
+      setCedulaRuc("");
+      setTelefonoCliente("");
+      setCorreoCliente("");
+      setDireccionEntrega("");
       setError(`Transferencia enviada. Tu número de orden es ${result.orderId}.`);
     } catch (transferError: any) {
       setError(transferError.message || "No se pudo enviar la transferencia.");
@@ -725,10 +732,40 @@ export default function CartPage() {
               <div><p className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">Pago seguro</p><h2 className="mt-1 text-2xl font-bold text-[var(--text)]">Pagar por transferencia</h2><p className="mt-1 text-sm text-[var(--textSecondary)]">Déjanos tus datos y adjunta la captura para revisar tu pago.</p></div>
               <button type="button" onClick={() => setMostrarTransferencia(false)} className="text-2xl text-[var(--textSecondary)]" aria-label="Cerrar">×</button>
             </div>
+
+            {/* Resumen de productos */}
+            <div className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
+              <p className="text-sm font-bold text-[var(--text)] mb-3">Productos seleccionados</p>
+              <div className="space-y-3">
+                {filteredCarrito.map((p) => {
+                  const { finalPrice } = calcularPrecioData(p);
+                  const lineTotal = finalPrice * (p.cantidad || 1);
+                  return (
+                    <div key={resolveCartItemKey(p)} className="flex gap-3 items-center">
+                      <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-[var(--card)] border border-[var(--border)]">
+                        <img
+                          src={p.imagenes?.[0] || "/no-image.png"}
+                          alt={p.nombre}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-[var(--text)] line-clamp-1">{p.nombre}</p>
+                        <p className="text-xs text-[var(--textSecondary)]">Cantidad: {p.cantidad || 1}</p>
+                      </div>
+                      <span className="text-sm font-bold text-[var(--text)]">${lineTotal.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="mt-5 grid gap-3">
               <label className="text-sm font-semibold text-[var(--text)]">Nombre completo<input required value={nombreCliente} onChange={(event) => setNombreCliente(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 font-normal" /></label>
+              <label className="text-sm font-semibold text-[var(--text)]">Cédula/RUC<input required value={cedulaRuc} onChange={(event) => setCedulaRuc(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 font-normal" /></label>
               <label className="text-sm font-semibold text-[var(--text)]">Número de teléfono<input required type="tel" value={telefonoCliente} onChange={(event) => setTelefonoCliente(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 font-normal" /></label>
               <label className="text-sm font-semibold text-[var(--text)]">Correo electrónico<input required type="email" value={correoCliente} onChange={(event) => setCorreoCliente(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 font-normal" /></label>
+              <label className="text-sm font-semibold text-[var(--text)]">Dirección de entrega<input required value={direccionEntrega} onChange={(event) => setDireccionEntrega(event.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2.5 font-normal" placeholder="Ej: Calle 123, apt 4B" /></label>
             </div>
             <div className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4"><p className="text-sm font-bold text-[var(--text)]">Elige una cuenta bancaria</p><div className="mt-3 grid gap-2">{cuentasBancarias.map((cuenta) => <button type="button" key={cuenta.id} onClick={() => setCuentaSeleccionada(cuenta.id)} className={`rounded-xl border p-3 text-left transition-colors ${cuentaSeleccionada === cuenta.id ? "border-[var(--primary)] bg-[var(--card)] ring-2 ring-[var(--primary)]/20" : "border-[var(--border)] bg-[var(--card)]"}`}><p className="font-bold text-[var(--text)]">{cuenta.banco}</p><p className="text-xs text-[var(--textSecondary)]">{cuenta.tipoCuenta} · {cuenta.numeroCuenta}</p><p className="text-xs text-[var(--textSecondary)]">Titular: {cuenta.titular}</p></button>)}</div></div>
             {cuentaSeleccionada && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><p className="font-bold">Información para transferir</p>{(() => { const cuenta = cuentasBancarias.find((item) => item.id === cuentaSeleccionada); return cuenta ? <div className="mt-1 space-y-0.5"><p>{cuenta.banco} · {cuenta.tipoCuenta}</p><p>Cuenta: <strong>{cuenta.numeroCuenta}</strong></p><p>Titular: {cuenta.titular}</p>{cuenta.identificacion && <p>Identificación: {cuenta.identificacion}</p>}</div> : null; })()}</div>}
