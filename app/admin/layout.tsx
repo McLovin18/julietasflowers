@@ -13,11 +13,11 @@ export default function HomeLayout({ children }) {
     });
   }, []);
   return (
-    
+
     <div className="flex">
 
       <Sidebar role={role} />
-      <main className="flex-1">
+      <main className="flex-1 w-full max-w-full overflow-x-hidden">
         {children}
       </main>
       <BottomBar role={role} />
